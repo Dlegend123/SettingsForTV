@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.3.32901.215
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SettingsForTV", "SettingsForTV\SettingsForTV.csproj", "{D0C1DAA0-0CFE-44DD-A0E3-A181124174AA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D0C1DAA0-0CFE-44DD-A0E3-A181124174AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D0C1DAA0-0CFE-44DD-A0E3-A181124174AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D0C1DAA0-0CFE-44DD-A0E3-A181124174AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D0C1DAA0-0CFE-44DD-A0E3-A181124174AA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {84DF3CA3-2F4B-4689-9B08-24A1E4D642A4}
+	EndGlobalSection
+EndGlobal
