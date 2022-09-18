@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
+using System.Text;
 using System.Windows.Forms;
 using SettingsForTV.WindowScrape.Constants;
 using SettingsForTV.WindowScrape.Static;
@@ -106,12 +107,12 @@ public class HwndObject
 
     public int GetMessageInt(WM msg)
     {
-        return HwndInterface.GetMessageInt(Hwnd, msg);
+        return GetMessageInt(Hwnd, msg);
     }
 
     public string GetMessageString(WM msg, uint param)
     {
-        return HwndInterface.GetMessageString(Hwnd, msg, param);
+        return GetMessageString(Hwnd, msg, param);
     }
 
     public HwndObject GetParent()
@@ -147,22 +148,12 @@ public class HwndObject
         return !(a == b);
     }
 
-    public void SendMessage(WM msg, uint param1, string param2)
-    {
-        HwndInterface.SendMessage(Hwnd, msg, param1, param2);
-    }
-
-    public void SendMessage(WM msg, uint param1, uint param2)
-    {
-        HwndInterface.SendMessage(Hwnd, msg, param1, param2);
-    }
-
-    private int WindowEnum(IntPtr hWnd, int lParam)
+    private bool WindowEnum(IntPtr hWnd, int lParam)
     {
         var threadId = GetWindowThreadProcessId(hWnd, out _);
         if (threadId == lParam) results.Add(hWnd);
 
-        return 1;
+        return true;
     }
 
     public IntPtr[] GetWindowHandlesForThread(int threadHandle)
@@ -210,9 +201,17 @@ public class HwndObject
     private static bool EnumWindow(IntPtr handle, IntPtr pointer)
     {
         var gch = GCHandle.FromIntPtr(pointer);
-        if (gch.Target is not List<IntPtr> list)
-            throw new InvalidCastException("GCHandle Target could not be cast as List<IntPtr>");
-        list.Add(handle);
+        try
+        {
+            if (gch.Target is not List<IntPtr> list)
+                throw new InvalidCastException("GCHandle Target could not be cast as List<IntPtr>");
+            list.Add(handle);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+
         //  You can modify this to check to see if you want to cancel the operation, then return a null here
         return true;
     }
@@ -281,11 +280,27 @@ public class HwndObject
         return screenScalingFactor;
     }
 
+    private IEnumerable<IntPtr> GetRootWindowsOfProcess(int pid)
+    {
+        var rootWindows = GetChildWindows(IntPtr.Zero);
+        var dsProcRootWindows = new List<IntPtr>();
+        foreach (var hWnd in rootWindows)
+        {
+            uint lpdwProcessId;
+            GetWindowThreadProcessId(hWnd, out lpdwProcessId);
+            if (lpdwProcessId == pid)
+                dsProcRootWindows.Add(hWnd);
+        }
+
+        return dsProcRootWindows;
+    }
+
     public void ShowAllOpenWindows()
     {
         var resolution = GetDisplayResolution();
 
-        var windows = Process.GetProcesses().Where(IsProcessWindowed).Where(IsNotSystemProcess).ToList();
+        var windows = Process.GetProcesses().Where(process => !string.IsNullOrEmpty(process.MainWindowTitle))
+            .Where(IsProcessWindowed).Where(IsNotSystemProcess).ToList();
 
         var columnWidth = resolution.Width / windows.Count;
         var rowHeight = resolution.Height / windows.Count;
@@ -302,6 +317,48 @@ public class HwndObject
                 rowHeight,
                 true);
         }
+    }
+
+    public void GetAllOpenWindows(Process process)
+    {
+        var resolution = GetDisplayResolution();
+
+        var windows = new List<IntPtr>();
+
+        process.Refresh();
+        windows.AddRange(GetRootWindowsOfProcess(process.Id));
+
+        var columnWidth = resolution.Width / windows.Count;
+        var rowHeight = resolution.Height / windows.Count;
+
+        for (var i = 0; i < windows.Count; i++)
+        {
+            decimal index = i;
+            var x = Math.Round(index / 3 * columnWidth, 0);
+            var y = Math.Round(index / 2 * rowHeight, 0);
+
+            ShowWindow(windows[i], (int)PositioningFlags.SW_SHOWNORMAL);
+            MoveWindow(windows[i], decimal.ToInt32(x), decimal.ToInt32(y), columnWidth,
+                rowHeight,
+                true);
+        }
+    }
+
+    public static List<IntPtr> GetOpenWindows()
+    {
+        var shellWindow = GetShellWindow();
+        var windows = new List<IntPtr>();
+
+        EnumWindows(delegate(IntPtr hWnd, int lParam)
+        {
+            if (hWnd == shellWindow) return true;
+            if (!IsWindowVisible(hWnd)) return true;
+
+            windows.Add(hWnd);
+            return true;
+        }, 0);
+
+        return windows;
     }
 
     public static void SetResolution(int iWidth, int iHeight)
@@ -330,7 +387,7 @@ public class HwndObject
         }
         else
         {
-            iRet = ChangeDisplaySettings(ref dm, CDS_UPDATEREGISTRY);
+            iRet = ChangeDisplaySettingsA(ref dm, CDS_UPDATEREGISTRY);
 
             switch (iRet)
             {
@@ -367,5 +424,81 @@ public class HwndObject
         var location = Location;
         var size = Size;
         return $"({Hwnd}) {location.X},{location.Y}:{size.Width}x{size.Height} \"{Title}\"";
+    }
+
+    public static IntPtr GetHwnd(string windowText, string className)
+    {
+        return (IntPtr)FindWindow(className, windowText);
+    }
+
+    public static IntPtr GetHwndChild(IntPtr hwnd, string clsName, string ctrlText)
+    {
+        return FindWindowEx(hwnd, IntPtr.Zero, clsName, ctrlText);
+    }
+
+    public static string GetHwndClassName(IntPtr hwnd)
+    {
+        var lpClassName = new StringBuilder(0x100);
+        _ = GetClassName(hwnd, lpClassName, lpClassName.MaxCapacity);
+        return lpClassName.ToString();
+    }
+
+    public static IntPtr GetHwndFromClass(string className)
+    {
+        return (IntPtr)FindWindow(className, null);
+    }
+
+    public static IntPtr GetHwndFromTitle(string windowText)
+    {
+        return (IntPtr)FindWindow(null, windowText);
+    }
+
+    public static IntPtr GetHwndParent(IntPtr hwnd)
+    {
+        return HwndInterface.GetParent(hwnd);
+    }
+
+    public static Point GetHwndPos(IntPtr hwnd)
+    {
+        GetWindowRect(hwnd, out var lpRect);
+        return new Point(lpRect.Left, lpRect.Top);
+    }
+
+    public static Size GetHwndSize(IntPtr hwnd)
+    {
+        GetWindowRect(hwnd, out var lpRect);
+        return new Size(lpRect.Right - lpRect.Left, lpRect.Bottom - lpRect.Top);
+    }
+
+    public static string GetHwndText(IntPtr hwnd)
+    {
+        var capacity = (int)HwndInterface.SendMessage(hwnd, 14, 0, 0) + 1;
+        var lParam = new StringBuilder(capacity);
+        HwndInterface.SendMessage(hwnd, 13, (uint)capacity, lParam);
+        return lParam.ToString();
+    }
+
+    public static string GetHwndTitle(IntPtr hwnd)
+    {
+        var lpString = new StringBuilder(GetHwndTitleLength(hwnd) + 1);
+        _ = GetWindowText(hwnd, lpString, lpString.Capacity);
+        return lpString.ToString();
+    }
+
+    public static int GetHwndTitleLength(IntPtr hwnd)
+    {
+        return GetWindowTextLengthA(hwnd);
+    }
+
+    public int GetMessageInt(IntPtr hwnd, WM msg)
+    {
+        return (int)SendMessage(hwnd, (uint)msg, 0, 0);
+    }
+
+    public static string GetMessageString(IntPtr hwnd, WM msg, uint param)
+    {
+        var lParam = new StringBuilder(0x10000);
+        SendMessage(hwnd, (uint)msg, param, lParam);
+        return lParam.ToString();
     }
 }

@@ -30,83 +30,11 @@ public class HwndInterface
     public static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
 
     [DllImport("user32.Dll")]
-    public static extern int EnumWindows(EnumWindowsProc x, int y);
+    public static extern bool EnumWindows(EnumWindowsProc x, int y);
 
-    public static IntPtr GetHwnd(string windowText, string className)
-    {
-        return (IntPtr)FindWindow(className, windowText);
-    }
+    [DllImport("USER32.DLL")]
+    public static extern IntPtr GetShellWindow();
 
-    public static IntPtr GetHwndChild(IntPtr hwnd, string clsName, string ctrlText)
-    {
-        return FindWindowEx(hwnd, IntPtr.Zero, clsName, ctrlText);
-    }
-
-    public static string GetHwndClassName(IntPtr hwnd)
-    {
-        var lpClassName = new StringBuilder(0x100);
-        _ = GetClassName(hwnd, lpClassName, lpClassName.MaxCapacity);
-        return lpClassName.ToString();
-    }
-
-    public static IntPtr GetHwndFromClass(string className)
-    {
-        return (IntPtr)FindWindow(className, null);
-    }
-
-    public static IntPtr GetHwndFromTitle(string windowText)
-    {
-        return (IntPtr)FindWindow(null, windowText);
-    }
-
-    public static IntPtr GetHwndParent(IntPtr hwnd)
-    {
-        return GetParent(hwnd);
-    }
-
-    public static Point GetHwndPos(IntPtr hwnd)
-    {
-        GetWindowRect(hwnd, out var lpRect);
-        return new Point(lpRect.Left, lpRect.Top);
-    }
-
-    public static Size GetHwndSize(IntPtr hwnd)
-    {
-        GetWindowRect(hwnd, out var lpRect);
-        return new Size(lpRect.Right - lpRect.Left, lpRect.Bottom - lpRect.Top);
-    }
-
-    public static string GetHwndText(IntPtr hwnd)
-    {
-        var capacity = (int)SendMessage(hwnd, 14, 0, 0) + 1;
-        var lParam = new StringBuilder(capacity);
-        SendMessage(hwnd, 13, (uint)capacity, lParam);
-        return lParam.ToString();
-    }
-
-    public static string GetHwndTitle(IntPtr hwnd)
-    {
-        var lpString = new StringBuilder(GetHwndTitleLength(hwnd) + 1);
-        _ = GetWindowText(hwnd, lpString, lpString.Capacity);
-        return lpString.ToString();
-    }
-
-    public static int GetHwndTitleLength(IntPtr hwnd)
-    {
-        return GetWindowTextLength(hwnd);
-    }
-
-    public static int GetMessageInt(IntPtr hwnd, WM msg)
-    {
-        return (int)SendMessage(hwnd, (uint)msg, 0, 0);
-    }
-
-    public static string GetMessageString(IntPtr hwnd, WM msg, uint param)
-    {
-        var lParam = new StringBuilder(0x10000);
-        SendMessage(hwnd, (uint)msg, param, lParam);
-        return lParam.ToString();
-    }
 
     [DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
     public static extern IntPtr GetParent(IntPtr hWnd);
@@ -122,7 +50,7 @@ public class HwndInterface
     public static extern bool IsProcessCritical(IntPtr hProcess, ref bool Critical);
 
     [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    public static extern int GetWindowTextLength(IntPtr hWnd);
+    public static extern int GetWindowTextLengthA(IntPtr hWnd);
 
     [DllImport("gdi32.dll", CharSet = CharSet.Auto, SetLastError = true, ExactSpelling = true)]
     public static extern int GetDeviceCaps(IntPtr hDC, int nIndex);
@@ -136,7 +64,7 @@ public class HwndInterface
     public static extern bool IsWindowVisible(IntPtr hWnd);
 
     [DllImport("user32.dll")]
-    public static extern int GetWindowThreadProcessId(IntPtr handle, out int processId);
+    public static extern int GetWindowThreadProcessId(IntPtr handle, out uint processId);
 
     [DllImport("user32.dll")]
     public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
@@ -401,9 +329,10 @@ public class HwndInterface
         public int dmPanningHeight;
     }
 
-    public delegate int EnumWindowsProc(IntPtr hwnd, int lParam);
+    public delegate bool EnumWindowsProc(IntPtr hwnd, int lParam);
 
     public delegate bool Win32Callback(IntPtr hwnd, IntPtr lParam);
+
     public const int ENUM_CURRENT_SETTINGS = -1;
     public const int CDS_UPDATEREGISTRY = 0x01;
     public const int CDS_TEST = 0x02;

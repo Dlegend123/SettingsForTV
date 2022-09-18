@@ -16,10 +16,10 @@ public partial class MainWindow : Window
     {
         var b = new HwndObject();
      //   var d = Process.GetProcesses().Where(b.IsProcessWindowed).ToList();
-        HwndObject.SetResolution(1920,1080);
+        //HwndObject.SetResolution(1920,1080);
 
        // var q = HwndInterface.AlignBottomCenter(d[1].MainWindowHandle, new IntPtr(-1));
         InitializeComponent();
-        //new WindowsController().ShowAllOpenWindows();
+        new HwndObject().ShowAllOpenWindows();
     }
 }
