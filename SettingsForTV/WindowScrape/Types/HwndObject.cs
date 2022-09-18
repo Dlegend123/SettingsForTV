@@ -25,37 +25,37 @@ public class HwndObject
     {
     }
 
-    public string ClassName => HwndInterface.GetHwndClassName(Hwnd);
+    public string ClassName => GetHwndClassName(Hwnd);
 
     public IntPtr Hwnd { get; }
 
     public Point Location
     {
-        get => HwndInterface.GetHwndPos(Hwnd);
-        set => HwndInterface.SetHwndPos(Hwnd, value.X, value.Y);
+        get => GetHwndPos(Hwnd);
+        set => SetHwndPos(Hwnd, value.X, value.Y);
     }
 
     public Size Size
     {
-        get => HwndInterface.GetHwndSize(Hwnd);
-        set => HwndInterface.SetHwndSize(Hwnd, value.Width, value.Height);
+        get => GetHwndSize(Hwnd);
+        set => SetHwndSize(Hwnd, value.Width, value.Height);
     }
 
     public string Text
     {
-        get => HwndInterface.GetHwndText(Hwnd);
-        set => HwndInterface.SetHwndText(Hwnd, value);
+        get => GetHwndText(Hwnd);
+        set => SetHwndText(Hwnd, value);
     }
 
     public string Title
     {
-        get => HwndInterface.GetHwndTitle(Hwnd);
-        set => HwndInterface.SetHwndTitle(Hwnd, value);
+        get => GetHwndTitle(Hwnd);
+        set => SetHwndTitle(Hwnd, value);
     }
 
     public void Click()
     {
-        HwndInterface.ClickHwnd(Hwnd);
+        ClickHwnd(Hwnd);
     }
 
     // <summary>
@@ -63,7 +63,7 @@ public class HwndObject
     // </summary>
     public bool Activate()
     {
-        return HwndInterface.ActivateWindow(Hwnd);
+        return ActivateWindow(Hwnd);
     }
 
     // <summary>
@@ -71,7 +71,7 @@ public class HwndObject
     // </summary>
     public bool Minimize()
     {
-        return HwndInterface.MinimizeWindow(Hwnd);
+        return MinimizeWindow(Hwnd);
     }
 
     public override bool Equals(object obj)
@@ -89,7 +89,7 @@ public class HwndObject
 
     public HwndObject GetChild(string cls, string title)
     {
-        return new HwndObject(HwndInterface.GetHwndChild(Hwnd, cls, title));
+        return new HwndObject(GetHwndChild(Hwnd, cls, title));
     }
 
     public List<HwndObject> GetChildren()
@@ -116,17 +116,17 @@ public class HwndObject
 
     public HwndObject GetParent()
     {
-        return new HwndObject(HwndInterface.GetHwndParent(Hwnd));
+        return new HwndObject(GetHwndParent(Hwnd));
     }
 
     public static HwndObject GetWindowByTitle(string title)
     {
-        return new HwndObject(HwndInterface.GetHwndFromTitle(title));
+        return new HwndObject(GetHwndFromTitle(title));
     }
 
     public static HwndObject GetWindowByClassName(string className)
     {
-        return new HwndObject(HwndInterface.GetHwndFromClass(className));
+        return new HwndObject(GetHwndFromClass(className));
     }
 
     public static List<HwndObject> GetWindows()
@@ -159,7 +159,7 @@ public class HwndObject
 
     private int WindowEnum(IntPtr hWnd, int lParam)
     {
-        var threadId = HwndInterface.GetWindowThreadProcessId(hWnd, out _);
+        var threadId = GetWindowThreadProcessId(hWnd, out _);
         if (threadId == lParam) results.Add(hWnd);
 
         return 1;
@@ -168,7 +168,7 @@ public class HwndObject
     public IntPtr[] GetWindowHandlesForThread(int threadHandle)
     {
         results.Clear();
-        _ = HwndInterface.EnumWindows(WindowEnum, threadHandle);
+        _ = EnumWindows(WindowEnum, threadHandle);
 
         return results.ToArray();
     }
@@ -181,19 +181,19 @@ public class HwndObject
                    into windows
                    where windows != null
                    from handle in windows
-                   select handle).Any(HwndInterface.WindowVisible);
+                   select handle).Any(WindowVisible);
     }
 
     public static bool IsNotSystemProcess(Process process)
     {
         try
         {
-            _ = HwndInterface.GetSecurityInfo(process.Handle, SE_OBJECT_TYPE.SE_KERNEL_OBJECT,
+            _ = GetSecurityInfo(process.Handle, SE_OBJECT_TYPE.SE_KERNEL_OBJECT,
                 SECURITY_INFORMATION.OWNER_SECURITY_INFORMATION, out var ownerSid, out _, out _, out _, out _);
 
             var criticalProcess = false;
 
-            HwndInterface.IsProcessCritical(process.Handle, ref criticalProcess);
+            IsProcessCritical(process.Handle, ref criticalProcess);
 
             return !new SecurityIdentifier(ownerSid).IsWellKnown(WellKnownSidType.LocalSystemSid) || !criticalProcess;
 
@@ -223,8 +223,8 @@ public class HwndObject
         var listHandle = GCHandle.Alloc(result);
         try
         {
-            var childProc = new HwndInterface.Win32Callback(EnumWindow);
-            HwndInterface.GetEnumChildWindows(parent, childProc, GCHandle.ToIntPtr(listHandle));
+            var childProc = new Win32Callback(EnumWindow);
+            GetEnumChildWindows(parent, childProc, GCHandle.ToIntPtr(listHandle));
         }
         finally
         {
@@ -241,7 +241,7 @@ public class HwndObject
         var list = new List<IntPtr>();
         do
         {
-            zero = HwndInterface.FindWindowEx(hwnd, zero, null, null);
+            zero = FindWindowEx(hwnd, zero, null, null);
             if (zero != IntPtr.Zero) list.Add(zero);
         } while (zero != IntPtr.Zero);
 
@@ -268,8 +268,8 @@ public class HwndObject
         //Get Handle to the device context associated with this Graphics object
         var deviceContextHandle = graphicsObject.GetHdc();
         //Call GetDeviceCaps with the Handle to retrieve the Screen Height
-        var logicalScreenHeight = HwndInterface.GetDeviceCaps(deviceContextHandle, (int)DeviceCap.VERTRES);
-        var physicalScreenHeight = HwndInterface.GetDeviceCaps(deviceContextHandle, (int)DeviceCap.DESKTOPVERTRES);
+        var logicalScreenHeight = GetDeviceCaps(deviceContextHandle, (int)DeviceCap.VERTRES);
+        var physicalScreenHeight = GetDeviceCaps(deviceContextHandle, (int)DeviceCap.DESKTOPVERTRES);
         //Divide the Screen Heights to get the scaling factor and round it to two decimals
         var screenScalingFactor = Math.Round(physicalScreenHeight / (double)logicalScreenHeight, 2);
         //If requested as percentage - convert it
@@ -297,8 +297,8 @@ public class HwndObject
             var y = Math.Round(index / 2 * rowHeight, 0);
 
             windows[i].Refresh();
-            HwndInterface.ShowWindow(windows[i].MainWindowHandle, (int)PositioningFlags.SW_SHOWNORMAL);
-            HwndInterface.MoveWindow(windows[i].MainWindowHandle, decimal.ToInt32(x), decimal.ToInt32(y), columnWidth,
+            ShowWindow(windows[i].MainWindowHandle, (int)PositioningFlags.SW_SHOWNORMAL);
+            MoveWindow(windows[i].MainWindowHandle, decimal.ToInt32(x), decimal.ToInt32(y), columnWidth,
                 rowHeight,
                 true);
         }
