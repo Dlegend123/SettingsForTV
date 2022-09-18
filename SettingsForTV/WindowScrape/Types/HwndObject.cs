@@ -320,7 +320,7 @@ public class HwndObject
         dm.dmPelsWidth = iWidth;
         dm.dmPelsHeight = iHeight;
 
-        var iRet = ChangeDisplaySettings(ref dm, CDS_TEST);
+        var iRet = ChangeDisplaySettingsA(ref dm, CDS_TEST);
 
         if (iRet == DISP_CHANGE_FAILED)
         {

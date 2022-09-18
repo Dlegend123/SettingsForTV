@@ -17,7 +17,7 @@ public class HwndInterface
     public static extern bool EnumDisplaySettingsA(string deviceName, int modeNum, ref DEVMODE1 devMode);
 
     [DllImport("user32.dll")]
-    public static extern int ChangeDisplaySettings(ref DEVMODE1 devMode, int flags);
+    public static extern int ChangeDisplaySettingsA(ref DEVMODE1 devMode, int flags);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     public static extern int FindWindow(string lpClassName, string lpWindowName);
