@@ -15,6 +15,15 @@ namespace SettingsForTV.WindowScrape.Types;
 
 public class HwndObject
 {
+    private uint _currentValue;
+    private IntPtr _firstMonitorHandle;
+    private uint _maxValue;
+    private uint _minValue;
+    private PHYSICAL_MONITOR[] _physicalMonitorArray;
+
+
+    private uint _physicalMonitorsCount;
+
     private readonly List<IntPtr> results = new();
 
     public HwndObject(IntPtr hwnd)
@@ -216,7 +225,7 @@ public class HwndObject
         return true;
     }
 
-    private IEnumerable<IntPtr> GetChildWindows(IntPtr parent)
+    private static IEnumerable<IntPtr> GetChildWindows(IntPtr parent)
     {
         var result = new List<IntPtr>();
         var listHandle = GCHandle.Alloc(result);
@@ -286,8 +295,7 @@ public class HwndObject
         var dsProcRootWindows = new List<IntPtr>();
         foreach (var hWnd in rootWindows)
         {
-            uint lpdwProcessId;
-            GetWindowThreadProcessId(hWnd, out lpdwProcessId);
+            _ = GetWindowThreadProcessId(hWnd, out var lpdwProcessId);
             if (lpdwProcessId == pid)
                 dsProcRootWindows.Add(hWnd);
         }
@@ -359,6 +367,13 @@ public class HwndObject
         }, 0);
 
         return windows;
+    }
+
+    public void SetBrightness(int newValue) // 0 ~ 100
+    {
+        newValue = Math.Min(newValue, Math.Max(0, newValue));
+        _currentValue = (_maxValue - _minValue) * (uint)newValue / 100u + _minValue;
+        SetMonitorBrightness(_firstMonitorHandle, _currentValue);
     }
 
     public static void SetResolution(int iWidth, int iHeight)
@@ -472,9 +487,9 @@ public class HwndObject
 
     public static string GetHwndText(IntPtr hwnd)
     {
-        var capacity = (int)HwndInterface.SendMessage(hwnd, 14, 0, 0) + 1;
+        var capacity = (int)SendMessage(hwnd, 14, 0, 0) + 1;
         var lParam = new StringBuilder(capacity);
-        HwndInterface.SendMessage(hwnd, 13, (uint)capacity, lParam);
+        SendMessage(hwnd, 13, (uint)capacity, lParam);
         return lParam.ToString();
     }
 
@@ -490,7 +505,7 @@ public class HwndObject
         return GetWindowTextLengthA(hwnd);
     }
 
-    public int GetMessageInt(IntPtr hwnd, WM msg)
+    public static int GetMessageInt(IntPtr hwnd, WM msg)
     {
         return (int)SendMessage(hwnd, (uint)msg, 0, 0);
     }
@@ -500,5 +515,21 @@ public class HwndObject
         var lParam = new StringBuilder(0x10000);
         SendMessage(hwnd, (uint)msg, param, lParam);
         return lParam.ToString();
+    }
+
+    public void Getrightness(IntPtr windowHandle)
+    {
+        const uint dwFlags = 0u;
+        var ptr = MonitorFromWindow(windowHandle, dwFlags);
+        if (!GetNumberOfPhysicalMonitorsFromHMONITOR(ptr, ref _physicalMonitorsCount))
+            throw new Exception("Cannot get monitor count!");
+        _physicalMonitorArray = new PHYSICAL_MONITOR[_physicalMonitorsCount];
+
+        if (!GetPhysicalMonitorsFromHMONITOR(ptr, _physicalMonitorsCount, _physicalMonitorArray))
+            throw new Exception("Cannot get physical monitor handle!");
+        _firstMonitorHandle = _physicalMonitorArray[0].hPhysicalMonitor;
+
+        if (!GetMonitorBrightness(_firstMonitorHandle, ref _minValue, ref _currentValue, ref _maxValue))
+            throw new Exception("Cannot get monitor brightness!");
     }
 }

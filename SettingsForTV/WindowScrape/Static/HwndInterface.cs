@@ -10,6 +10,17 @@ namespace SettingsForTV.WindowScrape.Static;
 
 public class HwndInterface
 {
+    public delegate bool EnumWindowsProc(IntPtr hwnd, int lParam);
+
+    public delegate bool Win32Callback(IntPtr hwnd, IntPtr lParam);
+
+    public const int ENUM_CURRENT_SETTINGS = -1;
+    public const int CDS_UPDATEREGISTRY = 0x01;
+    public const int CDS_TEST = 0x02;
+    public const int DISP_CHANGE_SUCCESSFUL = 0;
+    public const int DISP_CHANGE_RESTART = 1;
+    public const int DISP_CHANGE_FAILED = -1;
+
     [DllImport("user32.dll")]
     public static extern bool CloseWindow(IntPtr hWnd);
 
@@ -60,6 +71,19 @@ public class HwndInterface
         SECURITY_INFORMATION securityInfo, out IntPtr sidOwner, out IntPtr sidGroup, out IntPtr dacl, out IntPtr sacl,
         out IntPtr securityDescriptor);
 
+    [DllImport("user32.dll", EntryPoint = "MonitorFromWindow")]
+    public static extern IntPtr MonitorFromWindow([In] IntPtr hwnd, uint dwFlags);
+
+    [DllImport("dxva2.dll", EntryPoint = "GetPhysicalMonitorsFromHMONITOR")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetPhysicalMonitorsFromHMONITOR(IntPtr hMonitor, uint dwPhysicalMonitorArraySize,
+        [Out] PHYSICAL_MONITOR[] pPhysicalMonitorArray);
+
+    [DllImport("dxva2.dll", EntryPoint = "GetNumberOfPhysicalMonitorsFromHMONITOR")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetNumberOfPhysicalMonitorsFromHMONITOR(IntPtr hMonitor,
+        ref uint pdwNumberOfPhysicalMonitors);
+
     [DllImport("user32.dll")]
     public static extern bool IsWindowVisible(IntPtr hWnd);
 
@@ -72,10 +96,18 @@ public class HwndInterface
     [DllImport("user32.dll", SetLastError = true)]
     internal static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
 
+    [DllImport("dxva2.dll", EntryPoint = "GetMonitorBrightness")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetMonitorBrightness(IntPtr handle, ref uint minimumBrightness,
+        ref uint currentBrightness, ref uint maxBrightness);
+
     [DllImport("user32.Dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool EnumChildWindows(IntPtr parentHandle, Win32Callback callback, IntPtr lParam);
 
+    [DllImport("dxva2.dll", EntryPoint = "SetMonitorBrightness")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SetMonitorBrightness(IntPtr handle, uint newBrightness);
 
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
     public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
@@ -154,6 +186,75 @@ public class HwndInterface
     public static void ClickHwnd(IntPtr hwnd)
     {
         SendMessage(hwnd, 0xf5, IntPtr.Zero, IntPtr.Zero);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct DEVMODE1
+    {
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string dmDeviceName;
+
+        public short dmSpecVersion;
+        public short dmDriverVersion;
+        public short dmSize;
+        public short dmDriverExtra;
+        public int dmFields;
+
+        public short dmOrientation;
+        public short dmPaperSize;
+        public short dmPaperLength;
+        public short dmPaperWidth;
+
+        public short dmScale;
+        public short dmCopies;
+        public short dmDefaultSource;
+        public short dmPrintQuality;
+        public short dmColor;
+        public short dmDuplex;
+        public short dmYResolution;
+        public short dmTTOption;
+        public short dmCollate;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string dmFormName;
+
+        public short dmLogPixels;
+        public short dmBitsPerPel;
+        public int dmPelsWidth;
+        public int dmPelsHeight;
+
+        public int dmDisplayFlags;
+        public int dmDisplayFrequency;
+
+        public int dmICMMethod;
+        public int dmICMIntent;
+        public int dmMediaType;
+        public int dmDitherType;
+        public int dmReserved1;
+        public int dmReserved2;
+
+        public int dmPanningWidth;
+        public int dmPanningHeight;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    public struct PHYSICAL_MONITOR
+    {
+        public IntPtr hPhysicalMonitor;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        public string szPhysicalMonitorDescription;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    public struct WINDOWPLACEMENT
+    {
+        public int length;
+        public int flags;
+        public int showCmd;
+        public Point ptMinPosition;
+        public Point ptMaxPosition;
+        public Rectangle rcNormalPosition;
     }
 
     #region AlignTop
@@ -279,64 +380,4 @@ public class HwndInterface
     }
 
     #endregion
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct DEVMODE1
-    {
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
-        public string dmDeviceName;
-
-        public short dmSpecVersion;
-        public short dmDriverVersion;
-        public short dmSize;
-        public short dmDriverExtra;
-        public int dmFields;
-
-        public short dmOrientation;
-        public short dmPaperSize;
-        public short dmPaperLength;
-        public short dmPaperWidth;
-
-        public short dmScale;
-        public short dmCopies;
-        public short dmDefaultSource;
-        public short dmPrintQuality;
-        public short dmColor;
-        public short dmDuplex;
-        public short dmYResolution;
-        public short dmTTOption;
-        public short dmCollate;
-
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
-        public string dmFormName;
-
-        public short dmLogPixels;
-        public short dmBitsPerPel;
-        public int dmPelsWidth;
-        public int dmPelsHeight;
-
-        public int dmDisplayFlags;
-        public int dmDisplayFrequency;
-
-        public int dmICMMethod;
-        public int dmICMIntent;
-        public int dmMediaType;
-        public int dmDitherType;
-        public int dmReserved1;
-        public int dmReserved2;
-
-        public int dmPanningWidth;
-        public int dmPanningHeight;
-    }
-
-    public delegate bool EnumWindowsProc(IntPtr hwnd, int lParam);
-
-    public delegate bool Win32Callback(IntPtr hwnd, IntPtr lParam);
-
-    public const int ENUM_CURRENT_SETTINGS = -1;
-    public const int CDS_UPDATEREGISTRY = 0x01;
-    public const int CDS_TEST = 0x02;
-    public const int DISP_CHANGE_SUCCESSFUL = 0;
-    public const int DISP_CHANGE_RESTART = 1;
-    public const int DISP_CHANGE_FAILED = -1;
 }
