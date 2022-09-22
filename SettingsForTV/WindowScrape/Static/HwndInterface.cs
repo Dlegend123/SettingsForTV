@@ -24,6 +24,9 @@ public class HwndInterface
     [DllImport("user32.dll")]
     public static extern bool CloseWindow(IntPtr hWnd);
 
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    public static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
+
     [DllImport("user32.dll")]
     public static extern bool EnumDisplaySettingsA(string deviceName, int modeNum, ref DEVMODE1 devMode);
 

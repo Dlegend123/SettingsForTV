@@ -15,11 +15,11 @@ namespace SettingsForTV.WindowScrape.Types;
 
 public class HwndObject
 {
-    private uint _currentValue;
-    private IntPtr _firstMonitorHandle;
-    private uint _maxValue;
-    private uint _minValue;
-    private PHYSICAL_MONITOR[] _physicalMonitorArray;
+    public uint _currentValue;
+    public IntPtr _firstMonitorHandle;
+    public uint _maxValue;
+    public uint _minValue;
+    public PHYSICAL_MONITOR[] _physicalMonitorArray;
 
 
     private uint _physicalMonitorsCount;
@@ -184,7 +184,7 @@ public class HwndObject
                    select handle).Any(WindowVisible);
     }
 
-    public static bool IsNotSystemProcess(Process process)
+    public bool IsNotSystemProcess(Process process)
     {
         try
         {
@@ -517,19 +517,32 @@ public class HwndObject
         return lParam.ToString();
     }
 
-    public void Getrightness(IntPtr windowHandle)
+    public bool GetBrightness(IntPtr windowHandle)
     {
         const uint dwFlags = 0u;
         var ptr = MonitorFromWindow(windowHandle, dwFlags);
-        if (!GetNumberOfPhysicalMonitorsFromHMONITOR(ptr, ref _physicalMonitorsCount))
-            throw new Exception("Cannot get monitor count!");
-        _physicalMonitorArray = new PHYSICAL_MONITOR[_physicalMonitorsCount];
+        var gotNumMonitors = GetNumberOfPhysicalMonitorsFromHMONITOR(ptr, ref _physicalMonitorsCount);
+        if (!gotNumMonitors)
+            return false;
+        //MessageBox.Show("Cannot get monitor count!");
+        else
+        {
+            _physicalMonitorArray = new PHYSICAL_MONITOR[_physicalMonitorsCount];
+            var gotPhysicalMonitors =
+                GetPhysicalMonitorsFromHMONITOR(ptr, _physicalMonitorsCount, _physicalMonitorArray);
+            if (!gotPhysicalMonitors)
+                return false;
+            //MessageBox.Show("Cannot get physical monitor handle!");
+            else
+            {
+                _firstMonitorHandle = _physicalMonitorArray[0].hPhysicalMonitor;
 
-        if (!GetPhysicalMonitorsFromHMONITOR(ptr, _physicalMonitorsCount, _physicalMonitorArray))
-            throw new Exception("Cannot get physical monitor handle!");
-        _firstMonitorHandle = _physicalMonitorArray[0].hPhysicalMonitor;
+                if (!GetMonitorBrightness(_firstMonitorHandle, ref _minValue, ref _currentValue, ref _maxValue))
+                    return false;
+                //MessageBox.Show("Cannot get monitor brightness!");
+            }
+        }
 
-        if (!GetMonitorBrightness(_firstMonitorHandle, ref _minValue, ref _currentValue, ref _maxValue))
-            throw new Exception("Cannot get monitor brightness!");
+        return true;
     }
 }

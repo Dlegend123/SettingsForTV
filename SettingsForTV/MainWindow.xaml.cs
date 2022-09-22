@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using System.Diagnostics;
+using System.Linq;
+using System.Windows;
 using SettingsForTV.WindowScrape.Types;
 
 namespace SettingsForTV;
@@ -16,6 +18,11 @@ public partial class MainWindow : Window
 
         // var q = HwndInterface.AlignBottomCenter(d[1].MainWindowHandle, new IntPtr(-1));
         InitializeComponent();
-        new HwndObject().ShowAllOpenWindows();
+        var processes = Process.GetProcesses().Where(process => !string.IsNullOrEmpty(process.MainWindowTitle))
+            .Where(b.IsProcessWindowed).Where(b.IsNotSystemProcess).ToList();
+        foreach (var q in from x in processes select b.GetBrightness(x.MainWindowHandle))
+        {
+            var t = "";
+        }
     }
 }
