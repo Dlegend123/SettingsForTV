@@ -29,5 +29,11 @@ namespace SettingsForTV
             if (e.ChangedButton == MouseButton.Left)
                 DragMove();
         }
+
+        private void Window_Deactivated(object sender, EventArgs e)
+        {
+            // The Window was deactivated 
+            Topmost= true;
+        }
     }
 }

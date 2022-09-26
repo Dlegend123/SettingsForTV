@@ -8,7 +8,7 @@
         Title="Overlay" MaxHeight="76" MaxWidth="74"
         TextOptions.TextFormattingMode="Display" WindowStyle="None" MouseDown="Window_MouseDown"
         Background="Transparent"
-        AllowsTransparency="True" SizeToContent="WidthAndHeight" WindowStartupLocation="CenterScreen">
+        AllowsTransparency="True" SizeToContent="WidthAndHeight" Deactivated="Window_Deactivated">
     <Grid UseLayoutRounding="True">
         <Border CornerRadius="20" Background="Black" BorderThickness="1" HorizontalAlignment="Center"
                 VerticalAlignment="Center" BorderBrush="White">
