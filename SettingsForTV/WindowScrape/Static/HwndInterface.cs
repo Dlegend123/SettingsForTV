@@ -5,6 +5,7 @@ using System.Text;
 using System.Windows.Forms;
 using SettingsForTV.WindowScrape.Constants;
 using SettingsForTV.WindowScrape.Types;
+using static SettingsForTV.WindowScrape.Types.HwndObject;
 
 namespace SettingsForTV.WindowScrape.Static;
 
@@ -23,6 +24,9 @@ public class HwndInterface
 
     [DllImport("user32.dll")]
     public static extern bool CloseWindow(IntPtr hWnd);
+
+    [DllImport("shcore.dll")]
+    public static extern int SetProcessDpiAwareness(ProcessDpiAwareness value);
 
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
     public static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);

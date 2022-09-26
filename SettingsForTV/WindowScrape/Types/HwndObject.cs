@@ -20,7 +20,16 @@ public class HwndObject
     public uint _maxValue;
     public uint _minValue;
     public PHYSICAL_MONITOR[] _physicalMonitorArray;
+    const int SPI_SETDESKWALLPAPER = 20;
+    const int SPIF_UPDATEINIFILE = 0x01;
+    const int SPIF_SENDWININICHANGE = 0x02;
 
+    public enum ProcessDpiAwareness
+    {
+        ProcessDpiUnaware = 0,
+        ProcessSystemDpiAware = 1,
+        ProcessPerMonitorDpiAware = 2
+    }
 
     private uint _physicalMonitorsCount;
 
@@ -289,7 +298,7 @@ public class HwndObject
         return screenScalingFactor;
     }
 
-    private IEnumerable<IntPtr> GetRootWindowsOfProcess(int pid)
+    private static IEnumerable<IntPtr> GetRootWindowsOfProcess(int pid)
     {
         var rootWindows = GetChildWindows(IntPtr.Zero);
         var dsProcRootWindows = new List<IntPtr>();
@@ -544,5 +553,18 @@ public class HwndObject
         }
 
         return true;
+    }
+    public static bool SetSystemWallpaper(string wallpaperFilePath)
+    {
+        try
+        {
+            _ = SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, wallpaperFilePath,
+                SPIF_UPDATEINIFILE | SPIF_SENDWININICHANGE);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }
