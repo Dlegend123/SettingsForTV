@@ -10,6 +10,8 @@
 
   <ItemGroup>
     <None Remove="artifact.gif" />
+    <None Remove="Images\AI Loading Motion.gif" />
+    <None Remove="Images\artifact.gif" />
   </ItemGroup>
 
   <ItemGroup>
@@ -18,7 +20,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="artifact.gif" />
+    <Resource Include="Images\AI Loading Motion.gif">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Images\artifact.gif" />
   </ItemGroup>
 
 </Project>
