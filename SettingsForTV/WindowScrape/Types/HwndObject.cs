@@ -340,11 +340,11 @@ public class HwndObject
     {
         var resolution = GetDisplayResolution();
 
-        var windows = new List<IntPtr>();
 
         process.Refresh();
         windows.AddRange(GetRootWindowsOfProcess(process.Id));
 
+        });
         var columnWidth = resolution.Width / windows.Count;
         var rowHeight = resolution.Height / windows.Count;
 
