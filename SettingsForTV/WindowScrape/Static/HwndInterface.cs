@@ -44,7 +44,7 @@ public class HwndInterface
     public static extern IntPtr FindWindowEx(IntPtr parentHandle, IntPtr childAfter, string className,
         string windowTitle);
 
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
     public static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
 
     [DllImport("user32.Dll")]
@@ -263,6 +263,63 @@ public class HwndInterface
         public Point ptMaxPosition;
         public Rectangle rcNormalPosition;
     }
+    [StructLayout(LayoutKind.Sequential)]
+    public struct WINDOWINFO
+    {
+        public uint cbSize;
+        public Rect rcWindow;
+        public Rect rcClient;
+        public uint dwStyle;
+        public uint dwExStyle;
+        public uint dwWindowStatus;
+        public uint cxWindowBorders;
+        public uint cyWindowBorders;
+        public ushort atomWindowType;
+        public ushort wCreatorVersion;
+
+        public WINDOWINFO(Boolean? filler)
+            : this()   // Allows automatic initialization of "cbSize" with "new WINDOWINFO(null/true/false)".
+        {
+            cbSize = (UInt32)(Marshal.SizeOf(typeof(WINDOWINFO)));
+        }
+
+    }
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    public struct WNDCLASSEX
+    {
+        [MarshalAs(UnmanagedType.U4)]
+        public int cbSize;
+        [MarshalAs(UnmanagedType.U4)]
+        public int style;
+        public IntPtr lpfnWndProc; // not WndProc
+        public int cbClsExtra;
+        public int cbWndExtra;
+        public IntPtr hInstance;
+        public IntPtr hIcon;
+        public IntPtr hCursor;
+        public IntPtr hbrBackground;
+        public string lpszMenuName;
+        public string lpszClassName;
+        public IntPtr hIconSm;
+
+        //Use this function to make a new one with cbSize already filled in.
+        //For example:
+        //var WndClss = WNDCLASSEX.Build()
+        public static WNDCLASSEX Build()
+        {
+            var nw = new WNDCLASSEX();
+            nw.cbSize = Marshal.SizeOf(typeof(WNDCLASSEX));
+            return nw;
+        }
+    }
+    [return: MarshalAs(UnmanagedType.Bool)]
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool GetWindowInfo(IntPtr hwnd, ref WINDOWINFO pwi);
+    [DllImport("ws2_32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    public static extern Int32 WSAGetLastError();
+    [return: MarshalAs(UnmanagedType.Bool)]
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool GetClassInfoA(IntPtr hInstance, String lpClassName, ref WNDCLASSEX lpWndClass);
 
     #region AlignTop
 

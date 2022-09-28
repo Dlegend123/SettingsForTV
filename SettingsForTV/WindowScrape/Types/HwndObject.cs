@@ -1,15 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Media;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Windows;
 using System.Windows.Forms;
 using SettingsForTV.WindowScrape.Constants;
 using SettingsForTV.WindowScrape.Static;
 using static SettingsForTV.WindowScrape.Static.HwndInterface;
+using MessageBox = System.Windows.Forms.MessageBox;
+using Point = System.Drawing.Point;
+using Size = System.Drawing.Size;
 
 namespace SettingsForTV.WindowScrape.Types;
 
@@ -192,6 +199,10 @@ public class HwndObject
                    from handle in windows
                    select handle).Any(WindowVisible);
     }
+    public bool IsProcessResponding(Process externalProcess)
+    {
+        return externalProcess.Responding;
+    }
 
     public bool IsNotSystemProcess(Process process)
     {
@@ -312,39 +323,99 @@ public class HwndObject
         return dsProcRootWindows;
     }
 
+    public int HexStringCompare(string value1, string value2)
+    {
+        var InvalidHexExp = @"[^\dabcdef]";
+        var HexPaddingExp = @"^(0x)?0*";
+        //Remove whitespace, "0x" prefix if present, and leading zeros.  
+        //Also make all characters lower case.
+        var Value1 = Regex.Replace(value1.Trim().ToLower(), HexPaddingExp, "");
+        var Value2 = Regex.Replace(value2.Trim().ToLower(), HexPaddingExp, "");
+
+        //validate that values contain only hex characters
+        if (Regex.IsMatch(Value1, InvalidHexExp)) return -2;
+        if (Regex.IsMatch(Value2, InvalidHexExp)) return -2;
+
+        var result = Value1.Length.CompareTo(Value2.Length);
+        if (result == 0) result = string.Compare(Value1, Value2, StringComparison.Ordinal);
+
+        return result;
+    }
+
     public void ShowAllOpenWindows()
     {
+
         var resolution = GetDisplayResolution();
 
-        var windows = Process.GetProcesses().Where(process => !string.IsNullOrEmpty(process.MainWindowTitle))
-            .Where(IsProcessWindowed).Where(IsNotSystemProcess).ToList();
+        var processes = Process.GetProcesses().Where(process => !string.IsNullOrEmpty(process.MainWindowTitle))
+            .Where(IsProcessWindowed).Where(IsNotSystemProcess).Where(IsProcessResponding).ToList();
+        var windows = new List<KeyValuePair<Process, List<IntPtr>>>();
 
-        var columnWidth = resolution.Width / windows.Count;
-        var rowHeight = resolution.Height / windows.Count;
+        for (int i = 0; i < processes.Count; i++)
+        {
+            windows.Add(new KeyValuePair<Process, List<IntPtr>>(processes[i],
+                GetRootWindowsOfProcess(processes[i].Id).Select(window => window).Where(c => c != IntPtr.Zero)
+                    .ToList()));
+        }
 
+        var listAsSpan = CollectionsMarshal.AsSpan(windows);
+        var windowsInfo = new List<(string, string)>();
         for (var i = 0; i < windows.Count; i++)
         {
-            decimal index = i;
-            var x = Math.Round(index / 3 * columnWidth, 0);
-            var y = Math.Round(index / 2 * rowHeight, 0);
+            listAsSpan[i].Key.Refresh();
+            var count = listAsSpan[i].Value.Count;
+            var j = 0;
+            while (j < count)
+            {
+                var info = new WINDOWINFO();
+                info.cbSize = (uint)Marshal.SizeOf(info);
+                GetWindowInfo(listAsSpan[i].Value[j], ref info);
+                if (HexStringCompare(info.dwStyle.ToString("X"), "10000000") >= 0 &&
+                    HexStringCompare(info.dwStyle.ToString("X"), "20000000") <= 0 &&
+                    GetHwndText(listAsSpan[i].Value[j]) != "")
+                    windowsInfo.Add((info.dwExStyle.ToString("X"), info.dwStyle.ToString("X")));
+                else
+                {
+                    listAsSpan[i].Value.Remove(listAsSpan[i].Value[j]);
+                    j = 0;
+                    count--;
+                }
 
-            windows[i].Refresh();
-            ShowWindow(windows[i].MainWindowHandle, (int)PositioningFlags.SW_SHOWNORMAL);
-            MoveWindow(windows[i].MainWindowHandle, decimal.ToInt32(x), decimal.ToInt32(y), columnWidth,
-                rowHeight,
-                true);
+                j++;
+            }
         }
+
+        var columnWidth = resolution.Width / listAsSpan.ToArray().SelectMany(x => x.Value).ToList().Count;
+        var rowHeight = resolution.Height / listAsSpan.ToArray().SelectMany(x => x.Value).ToList().Count;
+
+        for (var i = 0; i < windowsInfo.Count; i++)
+        {
+            var windowAsSpan = CollectionsMarshal.AsSpan(listAsSpan[i].Value);
+            foreach (var t in windowAsSpan)
+            {
+                var shown = ShowWindow(t, (int)PositioningFlags.SW_SHOWNORMAL);
+                if (!shown)
+                    ShowWindow(t, (int)PositioningFlags.SW_SHOWNORMAL);
+                decimal index = i;
+                var x = Math.Round(index / 3 * columnWidth, 0);
+                var y = Math.Round(index / 2 * rowHeight, 0);
+
+                MoveWindow(t, decimal.ToInt32(x), decimal.ToInt32(y), columnWidth,
+                    rowHeight,
+                    true);
+            }
+        }
+
     }
 
     public void GetAllOpenWindows(Process process)
     {
         var resolution = GetDisplayResolution();
 
-
+        var windows = new List<IntPtr>();
         process.Refresh();
         windows.AddRange(GetRootWindowsOfProcess(process.Id));
 
-        });
         var columnWidth = resolution.Width / windows.Count;
         var rowHeight = resolution.Height / windows.Count;
 
@@ -462,7 +533,7 @@ public class HwndObject
 
     public static string GetHwndClassName(IntPtr hwnd)
     {
-        var lpClassName = new StringBuilder(0x100);
+        var lpClassName = new StringBuilder(1024);
         _ = GetClassName(hwnd, lpClassName, lpClassName.MaxCapacity);
         return lpClassName.ToString();
     }
