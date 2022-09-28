@@ -5,12 +5,14 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Media;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Forms;
+using Microsoft.VisualBasic.ApplicationServices;
 using SettingsForTV.WindowScrape.Constants;
 using SettingsForTV.WindowScrape.Static;
 using static SettingsForTV.WindowScrape.Static.HwndInterface;
@@ -227,6 +229,7 @@ public class HwndObject
         }
     }
 
+
     private static bool EnumWindow(IntPtr handle, IntPtr pointer)
     {
         var gch = GCHandle.FromIntPtr(pointer);
@@ -344,68 +347,79 @@ public class HwndObject
 
     public void ShowAllOpenWindows()
     {
-
         var resolution = GetDisplayResolution();
 
-        var processes = Process.GetProcesses().Where(process => !string.IsNullOrEmpty(process.MainWindowTitle))
-            .Where(IsProcessWindowed).Where(IsNotSystemProcess).Where(IsProcessResponding).ToList();
-        var windows = new List<KeyValuePair<Process, List<IntPtr>>>();
+        var collection = new List<IntPtr>();
 
-        for (int i = 0; i < processes.Count; i++)
+        bool Filter(IntPtr hWnd, int lParam)
         {
-            windows.Add(new KeyValuePair<Process, List<IntPtr>>(processes[i],
-                GetRootWindowsOfProcess(processes[i].Id).Select(window => window).Where(c => c != IntPtr.Zero)
-                    .ToList()));
+            var strbTitle = new StringBuilder(255);
+            _ = GetWindowText(hWnd, strbTitle, strbTitle.Capacity + 1);
+
+            if (IsWindowVisible(hWnd) && string.IsNullOrEmpty(strbTitle.ToString()) == false) collection.Add(hWnd);
+            return true;
         }
 
-        var listAsSpan = CollectionsMarshal.AsSpan(windows);
-        var windowsInfo = new List<(string, string)>();
-        for (var i = 0; i < windows.Count; i++)
+        if (!EnumDesktopWindows(IntPtr.Zero, Filter, IntPtr.Zero)) return;
         {
-            listAsSpan[i].Key.Refresh();
-            var count = listAsSpan[i].Value.Count;
-            var j = 0;
-            while (j < count)
+            var r = 0;
+            while (r < collection.Count)
             {
                 var info = new WINDOWINFO();
                 info.cbSize = (uint)Marshal.SizeOf(info);
-                GetWindowInfo(listAsSpan[i].Value[j], ref info);
-                if (HexStringCompare(info.dwStyle.ToString("X"), "10000000") >= 0 &&
-                    HexStringCompare(info.dwStyle.ToString("X"), "20000000") <= 0 &&
-                    GetHwndText(listAsSpan[i].Value[j]) != "")
-                    windowsInfo.Add((info.dwExStyle.ToString("X"), info.dwStyle.ToString("X")));
-                else
+                GetWindowInfo(collection[r], ref info);
+                var hexDwStyle = info.dwStyle.ToString("X");
+                var text = GetHwndTitle(collection[r]);
+                if (info.cyWindowBorders == 0 || text == "Overlay")
                 {
-                    listAsSpan[i].Value.Remove(listAsSpan[i].Value[j]);
-                    j = 0;
-                    count--;
+                    collection.Remove(collection[r]);
+                    r = 0;
                 }
 
-                j++;
+                r++;
             }
-        }
 
-        var columnWidth = resolution.Width / listAsSpan.ToArray().SelectMany(x => x.Value).ToList().Count;
-        var rowHeight = resolution.Height / listAsSpan.ToArray().SelectMany(x => x.Value).ToList().Count;
+            var listAsSpan = CollectionsMarshal.AsSpan(collection);
+            decimal length = listAsSpan.Length;
+            var columnWidth = resolution.Width / Math.Round(length / 2);
+            var rowHeight = resolution.Height / 2;
+            decimal lX = 0;
+            
+            var topRow = Math.Round(length / 2);
+            var bottomRow = Math.Round(length - topRow);
 
-        for (var i = 0; i < windowsInfo.Count; i++)
-        {
-            var windowAsSpan = CollectionsMarshal.AsSpan(listAsSpan[i].Value);
-            foreach (var t in windowAsSpan)
+            for (var i = 0; i < topRow; i++)
             {
-                var shown = ShowWindow(t, (int)PositioningFlags.SW_SHOWNORMAL);
-                if (!shown)
-                    ShowWindow(t, (int)PositioningFlags.SW_SHOWNORMAL);
-                decimal index = i;
-                var x = Math.Round(index / 3 * columnWidth, 0);
-                var y = Math.Round(index / 2 * rowHeight, 0);
+                var window = listAsSpan[i];
 
-                MoveWindow(t, decimal.ToInt32(x), decimal.ToInt32(y), columnWidth,
+                ShowWindowAsync(window, (int)PositioningFlags.SW_SHOWNORMAL);
+                SetForegroundWindow(window);
+
+                var x = lX;
+
+                MoveWindow(window, decimal.ToInt32(x), 0, decimal.ToInt32(columnWidth),
                     rowHeight,
                     true);
+                lX += columnWidth;
+            }
+
+            lX = 0;
+
+            for (var i = decimal.ToInt32(length -bottomRow); i < length; i++)
+            {
+                var window = listAsSpan[i];
+
+                ShowWindowAsync(window, (int)PositioningFlags.SW_SHOWNORMAL);
+                SetForegroundWindow(window);
+
+                var x = lX;
+
+                MoveWindow(window, decimal.ToInt32(x), rowHeight, decimal.ToInt32(columnWidth),
+                    rowHeight,
+                    true);
+                lX += columnWidth;
             }
         }
-
     }
 
     public void GetAllOpenWindows(Process process)
@@ -425,7 +439,7 @@ public class HwndObject
             var x = Math.Round(index / 3 * columnWidth, 0);
             var y = Math.Round(index / 2 * rowHeight, 0);
 
-            ShowWindow(windows[i], (int)PositioningFlags.SW_SHOWNORMAL);
+            ShowWindowAsync(windows[i], (int)PositioningFlags.SW_SHOWNORMAL);
             MoveWindow(windows[i], decimal.ToInt32(x), decimal.ToInt32(y), columnWidth,
                 rowHeight,
                 true);

@@ -5,7 +5,7 @@ namespace SettingsForTV.WindowScrape.Constants;
 [Flags]
 internal enum PositioningFlags
 {
-    SW_HIDE=0,
+    SW_HIDE = 0,
     SW_SHOWNORMAL = 1,
     SW_SHOWMINIMIZED = 2,
     SW_SHOWMAXIMIZED = 3,
@@ -33,6 +33,7 @@ internal enum PositioningFlags
     SWP_NOZORDER = 4,
     SWP_SHOWWINDOW = 0x40
 }
+
 [Flags]
 public enum WindowStyles : uint
 {
@@ -65,10 +66,7 @@ public enum WindowStyles : uint
 
     WS_OVERLAPPEDWINDOW = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
     WS_POPUPWINDOW = WS_POPUP | WS_BORDER | WS_SYSMENU,
-    WS_CHILDWINDOW = WS_CHILD,
-
-    
-
+    WS_CHILDWINDOW = WS_CHILD
 }
 
 [Flags]
@@ -101,8 +99,8 @@ public enum EXWindowStyles : uint
     WS_EX_STATICEDGE = 0x00020000,
     WS_EX_APPWINDOW = 0x00040000,
 
-    WS_EX_OVERLAPPEDWINDOW = (WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE),
-    WS_EX_PALETTEWINDOW = (WS_EX_WINDOWEDGE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST),
+    WS_EX_OVERLAPPEDWINDOW = WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE,
+    WS_EX_PALETTEWINDOW = WS_EX_WINDOWEDGE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
     //#endif /* WINVER >= 0x0400 */
 
     //#if(WIN32WINNT >= 0x0500)
@@ -119,9 +117,11 @@ public enum EXWindowStyles : uint
     //#if(WIN32WINNT >= 0x0500)
 
     WS_EX_COMPOSITED = 0x02000000,
+
     WS_EX_NOACTIVATE = 0x08000000
     //#endif /* WIN32WINNT >= 0x0500 */
 }
+
 public enum DeviceCap
 {
     VERTRES = 10,

@@ -11,6 +11,14 @@ namespace SettingsForTV.WindowScrape.Static;
 
 public class HwndInterface
 {
+    /// <summary>
+    /// filter function
+    /// </summary>
+    /// <param name="hWnd"></param>
+    /// <param name="lParam"></param>
+    /// <returns></returns>
+    public delegate bool EnumDelegate(IntPtr hWnd, int lParam);
+
     public delegate bool EnumWindowsProc(IntPtr hwnd, int lParam);
 
     public delegate bool Win32Callback(IntPtr hwnd, IntPtr lParam);
@@ -21,6 +29,17 @@ public class HwndInterface
     public const int DISP_CHANGE_SUCCESSFUL = 0;
     public const int DISP_CHANGE_RESTART = 1;
     public const int DISP_CHANGE_FAILED = -1;
+
+    /// <summary>
+    /// enumarator on all desktop windows
+    /// </summary>
+    /// <param name="hDesktop"></param>
+    /// <param name="lpEnumCallbackFunction"></param>
+    /// <param name="lParam"></param>
+    /// <returns></returns>
+    [DllImport("user32.dll", EntryPoint = "EnumDesktopWindows",
+        ExactSpelling = false, CharSet = CharSet.Auto, SetLastError = true)]
+    public static extern bool EnumDesktopWindows(IntPtr hDesktop, EnumDelegate lpEnumCallbackFunction, IntPtr lParam);
 
     [DllImport("user32.dll")]
     public static extern bool CloseWindow(IntPtr hWnd);
@@ -98,7 +117,7 @@ public class HwndInterface
     public static extern int GetWindowThreadProcessId(IntPtr handle, out uint processId);
 
     [DllImport("user32.dll")]
-    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+    public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
 
     [DllImport("user32.dll", SetLastError = true)]
     internal static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
