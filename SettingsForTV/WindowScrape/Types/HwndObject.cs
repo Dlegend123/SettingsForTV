@@ -1,20 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Media;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Windows;
 using System.Windows.Forms;
-using Microsoft.VisualBasic.ApplicationServices;
 using SettingsForTV.WindowScrape.Constants;
 using SettingsForTV.WindowScrape.Static;
+using static System.Net.Mime.MediaTypeNames;
 using static SettingsForTV.WindowScrape.Static.HwndInterface;
 using MessageBox = System.Windows.Forms.MessageBox;
 using Point = System.Drawing.Point;
@@ -29,10 +25,13 @@ public class HwndObject
     public uint _maxValue;
     public uint _minValue;
     public PHYSICAL_MONITOR[] _physicalMonitorArray;
-    const int SPI_SETDESKWALLPAPER = 20;
-    const int SPIF_UPDATEINIFILE = 0x01;
-    const int SPIF_SENDWININICHANGE = 0x02;
-
+    private const int SPI_SETDESKWALLPAPER = 20;
+    private const int SPIF_UPDATEINIFILE = 0x01;
+    private const int SPIF_SENDWININICHANGE = 0x02;
+    static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+    static readonly IntPtr HWND_NOTOPMOST = new IntPtr(-2);
+    static readonly IntPtr HWND_TOP = new IntPtr(0);
+    static readonly IntPtr HWND_BOTTOM = new IntPtr(1);
     public enum ProcessDpiAwareness
     {
         ProcessDpiUnaware = 0,
@@ -57,11 +56,6 @@ public class HwndObject
 
     public IntPtr Hwnd { get; }
 
-    public Point Location
-    {
-        get => GetHwndPos(Hwnd);
-        set => SetHwndPos(Hwnd, value.X, value.Y);
-    }
 
     public Size Size
     {
@@ -201,6 +195,7 @@ public class HwndObject
                    from handle in windows
                    select handle).Any(WindowVisible);
     }
+
     public bool IsProcessResponding(Process externalProcess)
     {
         return externalProcess.Responding;
@@ -328,7 +323,7 @@ public class HwndObject
 
     public int HexStringCompare(string value1, string value2)
     {
-        var InvalidHexExp = @"[^\dabcdef]";
+        var invalidHexExp = @"[^\dabcdef]";
         var HexPaddingExp = @"^(0x)?0*";
         //Remove whitespace, "0x" prefix if present, and leading zeros.  
         //Also make all characters lower case.
@@ -336,8 +331,8 @@ public class HwndObject
         var Value2 = Regex.Replace(value2.Trim().ToLower(), HexPaddingExp, "");
 
         //validate that values contain only hex characters
-        if (Regex.IsMatch(Value1, InvalidHexExp)) return -2;
-        if (Regex.IsMatch(Value2, InvalidHexExp)) return -2;
+        if (Regex.IsMatch(Value1, invalidHexExp)) return -2;
+        if (Regex.IsMatch(Value2, invalidHexExp)) return -2;
 
         var result = Value1.Length.CompareTo(Value2.Length);
         if (result == 0) result = string.Compare(Value1, Value2, StringComparison.Ordinal);
@@ -347,9 +342,9 @@ public class HwndObject
 
     public void ShowAllOpenWindows()
     {
-        var resolution = GetDisplayResolution();
 
         var collection = new List<IntPtr>();
+        var windowsInfo= new List<(IntPtr,WINDOWINFO)>();
 
         bool Filter(IntPtr hWnd, int lParam)
         {
@@ -359,108 +354,87 @@ public class HwndObject
             if (IsWindowVisible(hWnd) && string.IsNullOrEmpty(strbTitle.ToString()) == false) collection.Add(hWnd);
             return true;
         }
-
+        var info = new WINDOWINFO();
+        info.cbSize = (uint)Marshal.SizeOf(info);
         if (!EnumDesktopWindows(IntPtr.Zero, Filter, IntPtr.Zero)) return;
         {
             var r = 0;
             while (r < collection.Count)
             {
-                var info = new WINDOWINFO();
                 info.cbSize = (uint)Marshal.SizeOf(info);
                 GetWindowInfo(collection[r], ref info);
-                var hexDwStyle = info.dwStyle.ToString("X");
-                var text = GetHwndTitle(collection[r]);
-                if (info.cyWindowBorders == 0 || text == "Overlay")
+
+                if (info.cyWindowBorders == 0 || GetHwndTitle(collection[r]).Contains("Overlay"))
                 {
                     collection.Remove(collection[r]);
-                    r = 0;
+                    r--;
+                }
+                else
+                {
+                    windowsInfo.Add((collection[r], info));
                 }
 
                 r++;
             }
 
-            var listAsSpan = CollectionsMarshal.AsSpan(collection);
-            decimal length = listAsSpan.Length;
-            var columnWidth = resolution.Width / Math.Round(length / 2);
-            var rowHeight = resolution.Height / 2;
-            decimal lX = 0;
-            
-            var topRow = Math.Round(length / 2);
-            var bottomRow = Math.Round(length - topRow);
-
-            for (var i = 0; i < topRow; i++)
-            {
-                var window = listAsSpan[i];
-
-                ShowWindowAsync(window, (int)PositioningFlags.SW_SHOWNORMAL);
-                SetForegroundWindow(window);
-
-                var x = lX;
-
-                MoveWindow(window, decimal.ToInt32(x), 0, decimal.ToInt32(columnWidth),
-                    rowHeight,
-                    true);
-                lX += columnWidth;
-            }
-
-            lX = 0;
-
-            for (var i = decimal.ToInt32(length -bottomRow); i < length; i++)
-            {
-                var window = listAsSpan[i];
-
-                ShowWindowAsync(window, (int)PositioningFlags.SW_SHOWNORMAL);
-                SetForegroundWindow(window);
-
-                var x = lX;
-
-                MoveWindow(window, decimal.ToInt32(x), rowHeight, decimal.ToInt32(columnWidth),
-                    rowHeight,
-                    true);
-                lX += columnWidth;
-            }
+            SetWindows(collection, windowsInfo);
         }
     }
 
-    public void GetAllOpenWindows(Process process)
+    private static void SetWindows(List<IntPtr> collection, List<(IntPtr, WINDOWINFO)> windowsInfo)
     {
         var resolution = GetDisplayResolution();
 
-        var windows = new List<IntPtr>();
-        process.Refresh();
-        windows.AddRange(GetRootWindowsOfProcess(process.Id));
+        decimal length = collection.Count;
+        var columnWidth = decimal.ToInt32(resolution.Width / Math.Round(length / 2));
+        var rowHeight = resolution.Height / 2;
+        var random = new Random();
+        var round = random.Next(2);
+        var topRow = round == 0 ? Math.Floor(length / 2) : Math.Ceiling(length / 2);
+        var x = 0;
+        var y = 0;
+        var listAsSpan = CollectionsMarshal.AsSpan(collection);
+        var invalidWindows = new List<IntPtr>();
 
-        var columnWidth = resolution.Width / windows.Count;
-        var rowHeight = resolution.Height / windows.Count;
-
-        for (var i = 0; i < windows.Count; i++)
+        for (var i = 0; i < listAsSpan.Length; i++)
         {
-            decimal index = i;
-            var x = Math.Round(index / 3 * columnWidth, 0);
-            var y = Math.Round(index / 2 * rowHeight, 0);
+            var window = listAsSpan[i];
+            
+            MoveWindow(window, x, y, columnWidth, rowHeight, true);
+            SetForegroundWindow(window);
+            GetWindowRect(window, out var rect);
 
-            ShowWindowAsync(windows[i], (int)PositioningFlags.SW_SHOWNORMAL);
-            MoveWindow(windows[i], decimal.ToInt32(x), decimal.ToInt32(y), columnWidth,
-                rowHeight,
-                true);
+            if (windowsInfo[i].Item2.rcWindow == rect)
+            {
+                invalidWindows.Add(window);
+            }
+            x += columnWidth;
+
+            if (i + 1 != topRow) continue;
+
+            x = 0;
+            y = rowHeight;
         }
-    }
 
-    public static List<IntPtr> GetOpenWindows()
-    {
-        var shellWindow = GetShellWindow();
-        var windows = new List<IntPtr>();
-
-        EnumWindows(delegate(IntPtr hWnd, int lParam)
+        collection.RemoveAll(x => invalidWindows.Contains(x));
+        listAsSpan = CollectionsMarshal.AsSpan(collection);
+        invalidWindows.Clear();
+        y = x = 0;
+        for (var i = 0; i < listAsSpan.Length; i++)
         {
-            if (hWnd == shellWindow) return true;
-            if (!IsWindowVisible(hWnd)) return true;
+            var window = listAsSpan[i];
+            ShowWindow(window, (int)PositioningFlags.SW_SHOWNORMAL);
+            MoveWindow(window, x, y, columnWidth, rowHeight, true);
+            SetForegroundWindow(window);
 
-            windows.Add(hWnd);
-            return true;
-        }, 0);
+            x += columnWidth;
 
-        return windows;
+            if (i + 1 != topRow) continue;
+
+            x = 0;
+            y = rowHeight;
+        }
+
     }
 
     public void SetBrightness(int newValue) // 0 ~ 100
@@ -526,13 +500,6 @@ public class HwndObject
                 }
             }
         }
-    }
-
-    public override string ToString()
-    {
-        var location = Location;
-        var size = Size;
-        return $"({Hwnd}) {location.X},{location.Y}:{size.Width}x{size.Height} \"{Title}\"";
     }
 
     public static IntPtr GetHwnd(string windowText, string className)
@@ -616,29 +583,23 @@ public class HwndObject
         const uint dwFlags = 0u;
         var ptr = MonitorFromWindow(windowHandle, dwFlags);
         var gotNumMonitors = GetNumberOfPhysicalMonitorsFromHMONITOR(ptr, ref _physicalMonitorsCount);
-        if (!gotNumMonitors)
-            return false;
+        if (!gotNumMonitors) return false;
         //MessageBox.Show("Cannot get monitor count!");
-        else
+        _physicalMonitorArray = new PHYSICAL_MONITOR[_physicalMonitorsCount];
+        var gotPhysicalMonitors =
+            GetPhysicalMonitorsFromHMONITOR(ptr, _physicalMonitorsCount, _physicalMonitorArray);
+        if (!gotPhysicalMonitors)
         {
-            _physicalMonitorArray = new PHYSICAL_MONITOR[_physicalMonitorsCount];
-            var gotPhysicalMonitors =
-                GetPhysicalMonitorsFromHMONITOR(ptr, _physicalMonitorsCount, _physicalMonitorArray);
-            if (!gotPhysicalMonitors)
-                return false;
-            //MessageBox.Show("Cannot get physical monitor handle!");
-            else
-            {
-                _firstMonitorHandle = _physicalMonitorArray[0].hPhysicalMonitor;
-
-                if (!GetMonitorBrightness(_firstMonitorHandle, ref _minValue, ref _currentValue, ref _maxValue))
-                    return false;
-                //MessageBox.Show("Cannot get monitor brightness!");
-            }
+            return false;
         }
+        //MessageBox.Show("Cannot get physical monitor handle!");
 
-        return true;
+        _firstMonitorHandle = _physicalMonitorArray[0].hPhysicalMonitor;
+
+        return GetMonitorBrightness(_firstMonitorHandle, ref _minValue, ref _currentValue, ref _maxValue);
+        //MessageBox.Show("Cannot get monitor brightness!");
     }
+
     public static bool SetSystemWallpaper(string wallpaperFilePath)
     {
         try

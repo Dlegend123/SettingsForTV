@@ -6,6 +6,7 @@ using System.Windows.Forms;
 using SettingsForTV.WindowScrape.Constants;
 using SettingsForTV.WindowScrape.Types;
 using static SettingsForTV.WindowScrape.Types.HwndObject;
+using Point = System.Drawing.Point;
 
 namespace SettingsForTV.WindowScrape.Static;
 
@@ -55,6 +56,12 @@ public class HwndInterface
 
     [DllImport("user32.dll")]
     public static extern int ChangeDisplaySettingsA(ref DEVMODE1 devMode, int flags);
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
+
+    [DllImport("user32.dll")]
+    public static extern int GetWindowLong(IntPtr hwnd, int index);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     public static extern int FindWindow(string lpClassName, string lpWindowName);
@@ -78,7 +85,7 @@ public class HwndInterface
 
     [return: MarshalAs(UnmanagedType.Bool)]
     [DllImport("user32.dll")]
-    public static extern bool GetWindowRect(IntPtr hWnd, out Rect lpRect);
+    public static extern bool GetWindowRect(IntPtr hWnd, out Rectangle lpRect);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
@@ -117,7 +124,7 @@ public class HwndInterface
     public static extern int GetWindowThreadProcessId(IntPtr handle, out uint processId);
 
     [DllImport("user32.dll")]
-    public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
     [DllImport("user32.dll", SetLastError = true)]
     internal static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
@@ -171,11 +178,6 @@ public class HwndInterface
     public static bool MinimizeWindow(IntPtr hwnd)
     {
         return CloseWindow(hwnd);
-    }
-
-    public static bool SetHwndPos(IntPtr hwnd, int x, int y)
-    {
-        return SetWindowPos(hwnd, IntPtr.Zero, x, y, 0, 0, 5);
     }
 
     public static bool WindowVisible(IntPtr hwnd)
@@ -286,8 +288,8 @@ public class HwndInterface
     public struct WINDOWINFO
     {
         public uint cbSize;
-        public Rect rcWindow;
-        public Rect rcClient;
+        public Rectangle rcWindow;
+        public Rectangle rcClient;
         public uint dwStyle;
         public uint dwExStyle;
         public uint dwWindowStatus;
@@ -351,8 +353,7 @@ public class HwndInterface
         var screen = Screen.FromHandle(ptr).Bounds;
         var pt = new Point(screen.Left + screen.Width / 2 - (rct.Right - rct.Left) / 2,
             0);
-        return SetWindowPos(ptr, position, pt.X, pt.Y, 0, 0,
-            (uint)(PositioningFlags.SWP_NOSIZE | PositioningFlags.SWP_NOZORDER));
+        return SetWindowPos(ptr, position, pt.X, pt.Y, 0, 0, Swp.NOSIZE | Swp.NOZORDER);
     }
 
     public static bool AlignTopRight(IntPtr ptr, IntPtr position)
@@ -363,8 +364,7 @@ public class HwndInterface
         // in the Z order.
         var screen = Screen.FromHandle(ptr).Bounds;
         var pt = new Point(screen.Width - (rct.Right - rct.Left), 0);
-        return SetWindowPos(ptr, position, pt.X, pt.Y, 0, 0,
-            (uint)(PositioningFlags.SWP_NOSIZE | PositioningFlags.SWP_NOZORDER));
+        return SetWindowPos(ptr, position, pt.X, pt.Y, 0, 0, Swp.NOSIZE | Swp.NOZORDER);
     }
 
     public static bool AlignTopLeft(IntPtr ptr, IntPtr position)
@@ -374,8 +374,7 @@ public class HwndInterface
         // Move the window to (0,0) without changing its size or position
         // in the Z order.
         var pt = new Point(0, 0);
-        return SetWindowPos(ptr, position, pt.X, pt.Y, 0, 0,
-            (uint)(PositioningFlags.SWP_NOSIZE | PositioningFlags.SWP_NOZORDER));
+        return SetWindowPos(ptr, position, pt.X, pt.Y, 0, 0, Swp.NOSIZE | Swp.NOZORDER);
     }
 
     #endregion
@@ -391,8 +390,7 @@ public class HwndInterface
         var screen = Screen.FromHandle(ptr).Bounds;
         var pt = new Point(screen.Left + screen.Width / 2 - (rct.Right - rct.Left) / 2,
             screen.Top + screen.Height / 2 - (rct.Bottom - rct.Top) / 2);
-        return SetWindowPos(ptr, position, pt.X, pt.Y, 0, 0,
-            (uint)(PositioningFlags.SWP_NOSIZE | PositioningFlags.SWP_NOZORDER));
+        return SetWindowPos(ptr, position, pt.X, pt.Y, 0, 0, Swp.NOSIZE | Swp.NOZORDER);
     }
 
     public static bool AlignCenterLeft(IntPtr ptr, IntPtr position)
@@ -403,8 +401,7 @@ public class HwndInterface
         // in the Z order.
         var screen = Screen.FromHandle(ptr).Bounds;
         var pt = new Point(0, screen.Top + screen.Height / 2 - (rct.Bottom - rct.Top) / 2);
-        return SetWindowPos(ptr, position, 0, pt.Y, 0, 0,
-            (uint)(PositioningFlags.SWP_NOSIZE | PositioningFlags.SWP_NOZORDER));
+        return SetWindowPos(ptr, position, 0, pt.Y, 0, 0, Swp.NOSIZE | Swp.NOZORDER);
     }
 
     public static bool AlignCenterRight(IntPtr ptr, IntPtr position)
@@ -417,8 +414,7 @@ public class HwndInterface
 
         var pt = new Point(screen.Width - (rct.Right - rct.Left),
             screen.Top + screen.Height / 2 - (rct.Bottom - rct.Top) / 2);
-        return SetWindowPos(ptr, position, pt.X, pt.Y, 0, 0,
-            (uint)(PositioningFlags.SWP_NOSIZE | PositioningFlags.SWP_NOZORDER));
+        return SetWindowPos(ptr, position, pt.X, pt.Y, 0, 0, Swp.NOSIZE | Swp.NOZORDER);
     }
 
     #endregion
@@ -433,8 +429,7 @@ public class HwndInterface
         // in the Z order.
         var screen = Screen.FromHandle(ptr).Bounds;
         var pt = new Point(0, screen.Height - (rct.Bottom - rct.Top));
-        return SetWindowPos(ptr, position, pt.X, pt.Y, 0, 0,
-            (uint)(PositioningFlags.SWP_NOSIZE | PositioningFlags.SWP_NOZORDER));
+        return SetWindowPos(ptr, position, pt.X, pt.Y, 0, 0, Swp.NOSIZE | Swp.NOZORDER);
     }
 
     public static bool AlignBottomRight(IntPtr ptr, IntPtr position)
@@ -445,8 +440,7 @@ public class HwndInterface
         // in the Z order.
         var screen = Screen.FromHandle(ptr).Bounds;
         var pt = new Point(screen.Width - (rct.Right - rct.Left), screen.Height - (rct.Bottom - rct.Top));
-        return SetWindowPos(ptr, position, pt.X, pt.Y, 0, 0,
-            (uint)(PositioningFlags.SWP_NOSIZE | PositioningFlags.SWP_NOZORDER));
+        return SetWindowPos(ptr, position, pt.X, pt.Y, 0, 0, Swp.NOSIZE | Swp.NOZORDER);
     }
 
     public static bool AlignBottomCenter(IntPtr ptr, IntPtr position)
@@ -458,8 +452,7 @@ public class HwndInterface
         var screen = Screen.FromHandle(ptr).Bounds;
         var pt = new Point(screen.Left + screen.Width / 2 - (rct.Right - rct.Left) / 2,
             screen.Height - (rct.Bottom - rct.Top));
-        return SetWindowPos(ptr, position, pt.X, pt.Y, 0, 0,
-            (uint)(PositioningFlags.SWP_NOSIZE | PositioningFlags.SWP_NOZORDER));
+        return SetWindowPos(ptr, position, pt.X, pt.Y, 0, 0, Swp.NOSIZE | Swp.NOZORDER);
     }
 
     #endregion

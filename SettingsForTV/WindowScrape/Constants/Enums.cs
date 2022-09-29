@@ -2,6 +2,40 @@
 
 namespace SettingsForTV.WindowScrape.Constants;
 
+/// <summary>
+/// Window handles (HWND) used for hWndInsertAfter
+/// </summary>
+public static class Hwnd
+{
+    public static IntPtr
+        NoTopMost = new IntPtr(-2),
+        TopMost = new IntPtr(-1),
+        Top = new IntPtr(0),
+        Bottom = new IntPtr(1);
+}
+
+/// <summary>
+/// SetWindowPos Flags
+/// </summary>
+public static class Swp
+{
+    public static readonly uint
+        NOSIZE = 0x0001,
+        NOMOVE = 0x0002,
+        NOZORDER = 0x0004,
+        NOREDRAW = 0x0008,
+        NOACTIVATE = 0x0010,
+        DRAWFRAME = 0x0020,
+        FRAMECHANGED = 0x0020,
+        SHOWWINDOW = 0x0040,
+        HIDEWINDOW = 0x0080,
+        NOCOPYBITS = 0x0100,
+        NOOWNERZORDER = 0x0200,
+        NOREPOSITION = 0x0200,
+        NOSENDCHANGING = 0x0400,
+        DEFERERASE = 0x2000,
+        ASYNCWINDOWPOS = 0x4000;
+}
 [Flags]
 internal enum PositioningFlags
 {
@@ -16,22 +50,7 @@ internal enum PositioningFlags
     SW_SHOWNA = 8,
     SW_RESTORE = 9,
     SW_SHOWDEFAULT = 10,
-    SW_FORCEMINIMIZE = 11,
-    SWP_ASYNCWINDOWPOS = 0x4000,
-    SWP_DEFERERASE = 0x2000,
-    SWP_DRAWFRAME = 0x20,
-    SWP_FRAMECHANGED = 0x20,
-    SWP_HIDEWINDOW = 0x80,
-    SWP_NOACTIVATE = 0x10,
-    SWP_NOCOPYBITS = 0x100,
-    SWP_NOMOVE = 2,
-    SWP_NOOWNERZORDER = 0x200,
-    SWP_NOREDRAW = 8,
-    SWP_NOREPOSITION = 0x200,
-    SWP_NOSENDCHANGING = 0x400,
-    SWP_NOSIZE = 1,
-    SWP_NOZORDER = 4,
-    SWP_SHOWWINDOW = 0x40
+    SW_FORCEMINIMIZE = 11
 }
 
 [Flags]
