@@ -1,32 +1,42 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
-namespace SettingsForTV
+namespace SettingsForTV;
+
+/// <summary>
+///     Interaction logic for Settings.xaml
+/// </summary>
+public partial class Settings : Window
 {
-    /// <summary>
-    /// Interaction logic for Settings.xaml
-    /// </summary>
-    public partial class Settings : Window
+    public Settings()
     {
-        public Settings()
-        {
-            InitializeComponent();
-        }
-        private void Window_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.ChangedButton == MouseButton.Left)
-                DragMove();
-        }
+        InitializeComponent();
+    }
+
+    private void Window_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == MouseButton.Left)
+            DragMove();
+    }
+
+    private void SettingsClose_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
+    }
+
+    private void Settings_OnActivated(object? sender, EventArgs e)
+    {
+        Width = SystemParameters.PrimaryScreenWidth;
+
+        Height = SystemParameters.PrimaryScreenHeight;
+
+        Topmost = true;
+    }
+
+    private void Settings_OnDeactivated(object? sender, EventArgs e)
+    {
+        Topmost = true;
+        Settings_OnActivated(sender, e);
     }
 }

@@ -13,6 +13,16 @@ namespace SettingsForTV.WindowScrape;
 
 public class Wallpaper
 {
+    public enum Style
+    {
+        Fill,
+        Fit,
+        Span,
+        Stretch,
+        Tile,
+        Center
+    }
+
     private Wallpaper()
     {
     }
@@ -37,7 +47,7 @@ public class Wallpaper
             {
                 var secondaryFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
                 destWallFilePath = Path.Combine(secondaryFolder, "rollerWallpaper.bmp");
-                if (imgTemp!=null)
+                if (imgTemp != null)
                 {
                     imgTemp.Save(destWallFilePath, ImageFormat.Bmp);
                     Console.WriteLine("Wallpaper saved to secondary path: " + destWallFilePath);
@@ -99,6 +109,7 @@ public class Wallpaper
             return false;
         }
     }
+
     public static bool EnableDpiAwareness()
     {
         try
@@ -147,14 +158,5 @@ public class Wallpaper
         public string fullPath;
         public int xRes;
         public int yRes;
-    }
-    public enum Style
-    {
-        Fill,
-        Fit,
-        Span,
-        Stretch,
-        Tile,
-        Center
     }
 }

@@ -3,19 +3,19 @@
 namespace SettingsForTV.WindowScrape.Constants;
 
 /// <summary>
-/// Window handles (HWND) used for hWndInsertAfter
+///     Window handles (HWND) used for hWndInsertAfter
 /// </summary>
 public static class Hwnd
 {
     public static IntPtr
-        NoTopMost = new IntPtr(-2),
-        TopMost = new IntPtr(-1),
-        Top = new IntPtr(0),
-        Bottom = new IntPtr(1);
+        NoTopMost = new(-2),
+        TopMost = new(-1),
+        Top = new(0),
+        Bottom = new(1);
 }
 
 /// <summary>
-/// SetWindowPos Flags
+///     SetWindowPos Flags
 /// </summary>
 public static class Swp
 {
@@ -36,6 +36,7 @@ public static class Swp
         DEFERERASE = 0x2000,
         ASYNCWINDOWPOS = 0x4000;
 }
+
 [Flags]
 internal enum PositioningFlags
 {

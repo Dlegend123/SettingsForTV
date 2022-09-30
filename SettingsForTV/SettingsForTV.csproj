@@ -10,8 +10,20 @@
 
   <ItemGroup>
     <None Remove="artifact.gif" />
+    <None Remove="close_window_80px.png" />
+    <None Remove="icons8_close_window_480px.png" />
+    <None Remove="icons8_minimize_window_80px.png" />
     <None Remove="Images\AI Loading Motion.gif" />
     <None Remove="Images\artifact.gif" />
+    <None Remove="Images\icons8-laptop-settings.gif" />
+    <None Remove="Images\icons8_close_window_80px.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Images\icons8_minimize_window_80px.png" />
+    <Resource Include="Images\icons8-laptop-settings.gif">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
 
   <ItemGroup>
@@ -24,6 +36,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Images\artifact.gif" />
+    <Content Include="Images\icons8_close_window_80px.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

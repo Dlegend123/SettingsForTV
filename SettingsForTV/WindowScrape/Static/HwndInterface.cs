@@ -4,22 +4,18 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
 using SettingsForTV.WindowScrape.Constants;
-using SettingsForTV.WindowScrape.Types;
 using static SettingsForTV.WindowScrape.Types.HwndObject;
-using Point = System.Drawing.Point;
 
 namespace SettingsForTV.WindowScrape.Static;
 
 public class HwndInterface
 {
     /// <summary>
-    /// filter function
+    ///     filter function
     /// </summary>
     /// <param name="hWnd"></param>
     /// <param name="lParam"></param>
     /// <returns></returns>
-    public delegate bool EnumDelegate(IntPtr hWnd, int lParam);
-
     public delegate bool EnumWindowsProc(IntPtr hwnd, int lParam);
 
     public delegate bool Win32Callback(IntPtr hwnd, IntPtr lParam);
@@ -32,7 +28,7 @@ public class HwndInterface
     public const int DISP_CHANGE_FAILED = -1;
 
     /// <summary>
-    /// enumarator on all desktop windows
+    ///     enumarator on all desktop windows
     /// </summary>
     /// <param name="hDesktop"></param>
     /// <param name="lpEnumCallbackFunction"></param>
@@ -40,7 +36,11 @@ public class HwndInterface
     /// <returns></returns>
     [DllImport("user32.dll", EntryPoint = "EnumDesktopWindows",
         ExactSpelling = false, CharSet = CharSet.Auto, SetLastError = true)]
-    public static extern bool EnumDesktopWindows(IntPtr hDesktop, EnumDelegate lpEnumCallbackFunction, IntPtr lParam);
+    public static extern bool
+        EnumDesktopWindows(IntPtr hDesktop, EnumWindowsProc lpEnumCallbackFunction, IntPtr lParam);
+
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    public static extern int GetWindowTextLength(IntPtr hWnd);
 
     [DllImport("user32.dll")]
     public static extern bool CloseWindow(IntPtr hWnd);
@@ -56,6 +56,7 @@ public class HwndInterface
 
     [DllImport("user32.dll")]
     public static extern int ChangeDisplaySettingsA(ref DEVMODE1 devMode, int flags);
+
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
@@ -216,6 +217,17 @@ public class HwndInterface
         SendMessage(hwnd, 0xf5, IntPtr.Zero, IntPtr.Zero);
     }
 
+    [return: MarshalAs(UnmanagedType.Bool)]
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool GetWindowInfo(IntPtr hwnd, ref WINDOWINFO pwi);
+
+    [DllImport("ws2_32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    public static extern int WSAGetLastError();
+
+    [return: MarshalAs(UnmanagedType.Bool)]
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool GetClassInfoA(IntPtr hInstance, string lpClassName, ref WNDCLASSEX lpWndClass);
+
     [StructLayout(LayoutKind.Sequential)]
     public struct DEVMODE1
     {
@@ -284,6 +296,7 @@ public class HwndInterface
         public Point ptMaxPosition;
         public Rectangle rcNormalPosition;
     }
+
     [StructLayout(LayoutKind.Sequential)]
     public struct WINDOWINFO
     {
@@ -298,20 +311,18 @@ public class HwndInterface
         public ushort atomWindowType;
         public ushort wCreatorVersion;
 
-        public WINDOWINFO(Boolean? filler)
-            : this()   // Allows automatic initialization of "cbSize" with "new WINDOWINFO(null/true/false)".
+        public WINDOWINFO(bool? filler)
+            : this() // Allows automatic initialization of "cbSize" with "new WINDOWINFO(null/true/false)".
         {
-            cbSize = (UInt32)(Marshal.SizeOf(typeof(WINDOWINFO)));
+            cbSize = (uint)Marshal.SizeOf(typeof(WINDOWINFO));
         }
-
     }
+
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
     public struct WNDCLASSEX
     {
-        [MarshalAs(UnmanagedType.U4)]
-        public int cbSize;
-        [MarshalAs(UnmanagedType.U4)]
-        public int style;
+        [MarshalAs(UnmanagedType.U4)] public int cbSize;
+        [MarshalAs(UnmanagedType.U4)] public int style;
         public IntPtr lpfnWndProc; // not WndProc
         public int cbClsExtra;
         public int cbWndExtra;
@@ -333,14 +344,6 @@ public class HwndInterface
             return nw;
         }
     }
-    [return: MarshalAs(UnmanagedType.Bool)]
-    [DllImport("user32.dll", SetLastError = true)]
-    public static extern bool GetWindowInfo(IntPtr hwnd, ref WINDOWINFO pwi);
-    [DllImport("ws2_32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    public static extern Int32 WSAGetLastError();
-    [return: MarshalAs(UnmanagedType.Bool)]
-    [DllImport("user32.dll", SetLastError = true)]
-    public static extern bool GetClassInfoA(IntPtr hInstance, String lpClassName, ref WNDCLASSEX lpWndClass);
 
     #region AlignTop
 
