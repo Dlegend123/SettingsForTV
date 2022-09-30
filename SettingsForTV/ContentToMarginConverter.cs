@@ -34,9 +34,9 @@ namespace SettingsForTV
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
             var ps = new PathSegmentCollection(4);
-            ContentPresenter cp = (ContentPresenter)value;
-            double h = cp.ActualHeight > 10 ? 1.4 * cp.ActualHeight : 10;
-            double w = cp.ActualWidth > 10 ? 1.25 * cp.ActualWidth : 10;
+            var cp = (ContentPresenter)value;
+            var h = cp.ActualHeight > 10 ? 1.4 * cp.ActualHeight : 10;
+            var w = cp.ActualWidth > 10 ? 1.25 * cp.ActualWidth : 10;
             ps.Add(new LineSegment(new Point(1, 0.7 * h), true));
             ps.Add(new BezierSegment(new Point(1, 0.9 * h), new Point(0.1 * h, h), new Point(0.3 * h, h), true));
             ps.Add(new LineSegment(new Point(w, h), true));
