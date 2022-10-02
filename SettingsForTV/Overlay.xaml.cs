@@ -17,7 +17,8 @@ public partial class Overlay : Window
     internal const int WS_EX_TOPMOST = 0x00000008;
     private const int RetrySetTopMostDelay = 200;
     private const int RetrySetTopMostMax = 20;
-
+    Settings? settingsWindow;
+    private int identifierGeneration;
     public Overlay()
     {
         InitializeComponent();
@@ -54,6 +55,7 @@ public partial class Overlay : Window
 
             if ((winStyle & WS_EX_TOPMOST) != 0) break;
 
+            if (Application.Current.MainWindow == null) continue;
             Application.Current.MainWindow.Topmost = false;
             Application.Current.MainWindow.Topmost = true;
         }
@@ -70,7 +72,21 @@ public partial class Overlay : Window
 
     private void OpenSettings_Click(object sender, RoutedEventArgs e)
     {
-        var settingsWindow = new Settings();
-        settingsWindow.ShowDialog();
+        if (settingsWindow == null)
+        {
+            settingsWindow = new Settings();
+            identifierGeneration = GC.GetGeneration(settingsWindow);
+            settingsWindow.Closed += (_, _) =>
+            {
+                settingsWindow = null;
+                GC.Collect(((Overlay)Application.Current.MainWindow).identifierGeneration, GCCollectionMode.Forced);
+            };
+            settingsWindow.Show();
+        }
+        else
+        {
+            settingsWindow.ChangeWindowStateToNormal();
+            Overlay_OnActivated(sender, e);
+        }
     }
 }

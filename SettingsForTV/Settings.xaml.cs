@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace SettingsForTV;
@@ -25,6 +26,12 @@ public partial class Settings : Window
         Close();
     }
 
+    public void ChangeWindowStateToNormal()
+    {
+        WindowState = WindowState.Normal;
+        Topmost = true;
+        Topmost = false;
+    }
     private void Settings_OnActivated(object? sender, EventArgs e)
     {
         Width = SystemParameters.PrimaryScreenWidth;
@@ -38,5 +45,39 @@ public partial class Settings : Window
     {
         Topmost = true;
         Settings_OnActivated(sender, e);
+    }
+
+    private void SettingsMinimize_Click(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState.Minimized;
+    }
+
+    private void NumInput_KeyUp(object sender, KeyEventArgs e)
+    {
+        var textBox = (TextBox)sender;
+        var success = int.TryParse(textBox.Text, out var num);
+        if (success)
+        {
+            textBox.Text = e.Key switch
+            {
+                Key.Down => (num - 1).ToString(),
+                Key.Up => (num + 1).ToString(),
+                _ => textBox.Text
+            };
+        }
+    }
+
+    private void MaxWindowNum_KeyDown(object sender, KeyEventArgs e)
+    {
+        var success = int.TryParse(MaxWindowNum.Text, out var num);
+        if (success)
+        {
+            MaxWindowNum.Text = e.Key switch
+            {
+                Key.Down => (num - 1).ToString(),
+                Key.Up => (num + 1).ToString(),
+                _ => MaxWindowNum.Text
+            };
+        }
     }
 }

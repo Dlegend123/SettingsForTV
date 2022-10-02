@@ -186,38 +186,38 @@
             <Border Name="Mask"
                     BorderBrush="#FF795850"
                     BorderThickness="10"
-                    CornerRadius="20" UseLayoutRounding="True">
-                <Border.Background>
-                    <SolidColorBrush Color="Black" />
-                </Border.Background>
+                    CornerRadius="20">
                 <Border
                     BorderBrush="White"
                     BorderThickness="2"
-                    CornerRadius="10" UseLayoutRounding="True">
+                    CornerRadius="10">
+                    <Border.Effect>
+                        <DropShadowEffect/>
+                    </Border.Effect>
                     <Border.Background>
-                        <SolidColorBrush Color="#FF795850" />
+                        <SolidColorBrush Color="#FFE2D3B8" />
                     </Border.Background>
                     <Border
-                        Background="Black"
+                        Background="#FFE2D3B8"
                         BorderThickness="10"
-                        CornerRadius="4" UseLayoutRounding="True">
+                        CornerRadius="5">
                         <Border.BorderBrush>
-                            <SolidColorBrush Color="Black" />
+                            <SolidColorBrush Color="#FFE2D3B8" />
                         </Border.BorderBrush>
                         <Border
                             BorderBrush="White"
                             BorderThickness="2"
-                            CornerRadius="5" UseLayoutRounding="True">
+                            CornerRadius="5">
+                            <Border.Effect>
+                                <DropShadowEffect/>
+                            </Border.Effect>
                             <Border.Background>
-                                <SolidColorBrush Color="#FF795850" Opacity="0.5" />
+                                <SolidColorBrush Color="#FF795850" />
                             </Border.Background>
                             <Border
                                 Background="Transparent"
                                 BorderThickness="10"
                                 CornerRadius="1">
-                                <Border.Effect>
-                                    <DropShadowEffect />
-                                </Border.Effect>
                                 <Border.BorderBrush>
                                     <SolidColorBrush Color="#FF795850" Opacity="0.4" />
                                 </Border.BorderBrush>
