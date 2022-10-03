@@ -17,11 +17,13 @@ public partial class Overlay : Window
     internal const int WS_EX_TOPMOST = 0x00000008;
     private const int RetrySetTopMostDelay = 200;
     private const int RetrySetTopMostMax = 20;
-    Settings? settingsWindow;
+    SettingsWindow? settingsWindow;
     private int identifierGeneration;
+    private Settings settings;
     public Overlay()
     {
         InitializeComponent();
+        settings = Settings.GetSettings();
     }
 
     private void Window_MouseDown(object sender, MouseButtonEventArgs e)
@@ -74,12 +76,13 @@ public partial class Overlay : Window
     {
         if (settingsWindow == null)
         {
-            settingsWindow = new Settings();
+            settingsWindow = new SettingsWindow();
             identifierGeneration = GC.GetGeneration(settingsWindow);
             settingsWindow.Closed += (_, _) =>
             {
                 settingsWindow = null;
                 GC.Collect(((Overlay)Application.Current.MainWindow).identifierGeneration, GCCollectionMode.Forced);
+                ((Overlay)Application.Current.MainWindow).settings = Settings.GetSettings();
             };
             settingsWindow.Show();
         }

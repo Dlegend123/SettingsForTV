@@ -17,6 +17,7 @@
     <None Remove="Images\artifact.gif" />
     <None Remove="Images\icons8-laptop-settings.gif" />
     <None Remove="Images\icons8_close_window_80px.png" />
+    <None Remove="Images\icons8_save_80px.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,6 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
     <PackageReference Include="WpfAnimatedGif" Version="2.0.2" />
   </ItemGroup>
@@ -36,6 +38,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Images\artifact.gif" />
+    <Resource Include="Images\icons8_save_80px.png" />
     <Content Include="Images\icons8_close_window_80px.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

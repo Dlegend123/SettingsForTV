@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -352,16 +353,81 @@ public class HwndObject
     private static void SetWindows(List<IntPtr> collection, IReadOnlyList<WINDOWINFO> windowsInfo)
     {
         var resolution = GetDisplayResolution();
-
+        var settings = Settings.GetSettings().Display;
+        var rowCount = Convert.ToInt32(settings["RowCount"]?.ToString());
+        var colCount = Convert.ToInt32(settings["MaxWindows"]?.ToString());
+        var allowOverlay = (bool)(settings["AllowOverlap"] ?? false);
         decimal length = collection.Count;
-        var columnWidth = decimal.ToInt32(resolution.Width / Math.Round(length / 2));
-        var rowHeight = resolution.Height / 2;
+
+        var columnWidth = decimal.ToInt32(resolution.Width / Math.Round(length / colCount));
+        var rowHeight = resolution.Height / rowCount;
         var round = new Random().Next(2);
-        var topRow = round == 0 ? Math.Floor(length / 2) : Math.Ceiling(length / 2);
+
+        var invalidWindows = new List<IntPtr>();
+
+        //Find non-resizable windows
+        GetNonResizableWindows(windowsInfo, CollectionsMarshal.AsSpan(collection), columnWidth, rowHeight,
+            ref invalidWindows, round == 0 ? Math.Floor(length / 2) : Math.Ceiling(length / 2));
+
+        //remove non-resizable windows
+        RemoveNonResizableWindows(ref collection, CollectionsMarshal.AsSpan(invalidWindows));
+
+        if (collection.Count > rowCount * colCount)
+            collection = collection.Take(rowCount * colCount).ToList();
+
+        //Set number of windows per row
+        var itemsInRows = GetNumberOfWindowsPerRow(collection, rowCount);
+
+        //Show valid windows
+        ShowValidWindows(itemsInRows, collection, resolution.Width / collection.Count / colCount, rowHeight);
+    }
+
+    private static List<int> GetNumberOfWindowsPerRow(ICollection collection, int rowCount)
+    {
+        var itemsInRow = new List<int>();
+        var topRow = collection.Count / rowCount;
+        var itemsLeft = collection.Count - topRow;
+
+        itemsInRow.Add(topRow);
+
+
+        for (var i = 1; i < rowCount; i++)
+        {
+            var last = itemsInRow.Last();
+            itemsInRow.Add(itemsLeft - last);
+            itemsLeft -= last;
+        }
+
+        return itemsInRow;
+    }
+
+    private static void ShowValidWindows(List<int> itemsInRows, List<IntPtr> cCollection, int columnWidth, int rowHeight)
+    {
         var x = 0;
         var y = 0;
-        var listAsSpan = CollectionsMarshal.AsSpan(collection);
-        var invalidWindows = new List<IntPtr>();
+        foreach (var itemCount in CollectionsMarshal.AsSpan(itemsInRows))
+        {
+            var rowCollection = cCollection.Take(itemCount).ToList();
+            var itemSpan = CollectionsMarshal.AsSpan(rowCollection);
+            for (var i = 0; i < itemCount; i++)
+            {
+                var window = itemSpan[i];
+                MoveWindow(window, x, y, columnWidth, rowHeight, true);
+
+                x += columnWidth;
+            }
+
+            x = 0;
+            y += rowHeight;
+            cCollection.RemoveRange(0, itemCount);
+        }
+    }
+
+    private static void GetNonResizableWindows(IReadOnlyList<WINDOWINFO> windowsInfo, Span<IntPtr> listAsSpan, int columnWidth, int rowHeight,
+        ref List<IntPtr> invalidWindows, decimal topRow)
+    {
+        var x = 0;
+        var y = 0;
 
         for (var i = 0; i < listAsSpan.Length; i++)
         {
@@ -379,8 +445,10 @@ public class HwndObject
             x = 0;
             y = rowHeight;
         }
+    }
 
-        var invalidSpan = CollectionsMarshal.AsSpan(invalidWindows);
+    private static void RemoveNonResizableWindows(ref List<IntPtr> collection, Span<IntPtr> invalidSpan)
+    {
         foreach (var window in invalidSpan)
             for (var j = 0; j < collection.Count; j++)
             {
@@ -390,21 +458,6 @@ public class HwndObject
                 ShowWindow(Process.GetProcessById((int)processId).MainWindowHandle, (int)PositioningFlags.SW_MINIMIZE);
                 break;
             }
-
-        listAsSpan = CollectionsMarshal.AsSpan(collection);
-        y = x = 0;
-        for (var i = 0; i < listAsSpan.Length; i++)
-        {
-            var window = listAsSpan[i];
-            MoveWindow(window, x, y, columnWidth, rowHeight, true);
-
-            x += columnWidth;
-
-            if (i + 1 != topRow) continue;
-
-            x = 0;
-            y = rowHeight;
-        }
     }
 
     public void SetBrightness(int newValue) // 0 ~ 100
