@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -350,114 +349,188 @@ public class HwndObject
         }
     }
 
-    private static void SetWindows(List<IntPtr> collection, IReadOnlyList<WINDOWINFO> windowsInfo)
+    private void SetWindows(List<IntPtr> collection, IReadOnlyList<WINDOWINFO> windowsInfo)
     {
         var resolution = GetDisplayResolution();
         var settings = Settings.GetSettings().Display;
         var rowCount = Convert.ToInt32(settings["RowCount"]?.ToString());
         var colCount = Convert.ToInt32(settings["MaxWindows"]?.ToString());
         var allowOverlay = (bool)(settings["AllowOverlap"] ?? false);
-        decimal length = collection.Count;
-
-        var columnWidth = decimal.ToInt32(resolution.Width / Math.Round(length / colCount));
+        var columnWidth = resolution.Width / collection.Count / colCount;
         var rowHeight = resolution.Height / rowCount;
-        var round = new Random().Next(2);
-
         var invalidWindows = new List<IntPtr>();
+        var items = new List<(IntPtr, int, int)>();
+        var windowCount = rowCount * colCount;
 
         //Find non-resizable windows
-        GetNonResizableWindows(windowsInfo, CollectionsMarshal.AsSpan(collection), columnWidth, rowHeight,
-            ref invalidWindows, round == 0 ? Math.Floor(length / 2) : Math.Ceiling(length / 2));
+        GetNonResizableWindows(ref items, windowsInfo, CollectionsMarshal.AsSpan(collection), columnWidth, rowHeight,
+            ref invalidWindows, resolution.Width / collection.Count / colCount);
 
         //remove non-resizable windows
-        RemoveNonResizableWindows(ref collection, CollectionsMarshal.AsSpan(invalidWindows));
+        RemoveNonResizableWindows(invalidWindows, ref items);
 
-        if (collection.Count > rowCount * colCount)
-            collection = collection.Take(rowCount * colCount).ToList();
-
-        //Set number of windows per row
-        var itemsInRows = GetNumberOfWindowsPerRow(collection, rowCount);
-
-        //Show valid windows
-        ShowValidWindows(itemsInRows, collection, resolution.Width / collection.Count / colCount, rowHeight);
-    }
-
-    private static List<int> GetNumberOfWindowsPerRow(ICollection collection, int rowCount)
-    {
-        var itemsInRow = new List<int>();
-        var topRow = collection.Count / rowCount;
-        var itemsLeft = collection.Count - topRow;
-
-        itemsInRow.Add(topRow);
+        //Minimize non-resizable windows
+        MinimizeWindows(CollectionsMarshal.AsSpan(invalidWindows));
 
 
-        for (var i = 1; i < rowCount; i++)
+        items = items.OrderBy(x => x.Item3).ThenBy(y => y.Item2).ToList();
+
+        if (items.Count > windowCount)
         {
-            var last = itemsInRow.Last();
-            itemsInRow.Add(itemsLeft - last);
-            itemsLeft -= last;
+            var itemsToMinimize = items.GetRange(windowCount, items.Count - windowCount).ToList();
+            MinimizeWindows(CollectionsMarshal.AsSpan(itemsToMinimize.Select(x => x.Item1).ToList()));
         }
 
-        return itemsInRow;
+        var widths = GetsWindowsWidthsForRows(rowCount, resolution, items.Take(windowCount).ToList());
+
+        var rows = CreateRows(widths, items);
+        ShowValidWindows(CollectionsMarshal.AsSpan(rows), rowHeight);
     }
 
-    private static void ShowValidWindows(List<int> itemsInRows, List<IntPtr> cCollection, int columnWidth, int rowHeight)
+    private static void RemoveNonResizableWindows(List<IntPtr> invalidWindows, ref List<(IntPtr, int, int)> items)
     {
-        var x = 0;
-        var y = 0;
-        foreach (var itemCount in CollectionsMarshal.AsSpan(itemsInRows))
-        {
-            var rowCollection = cCollection.Take(itemCount).ToList();
-            var itemSpan = CollectionsMarshal.AsSpan(rowCollection);
-            for (var i = 0; i < itemCount; i++)
+        foreach (var wIntPtr in CollectionsMarshal.AsSpan(invalidWindows))
+            for (var i = 0; i < items.Count; i++)
             {
-                var window = itemSpan[i];
-                MoveWindow(window, x, y, columnWidth, rowHeight, true);
+                if (items[i].Item1 != wIntPtr) continue;
+                items.RemoveAt(i);
+            }
+    }
 
-                x += columnWidth;
+    private static List<List<(IntPtr, int, int)>> CreateRows(List<List<int>> widths,
+        IReadOnlyCollection<(IntPtr, int, int)> items)
+    {
+        var rows = new List<List<(IntPtr, int, int)>>();
+        foreach (var row in CollectionsMarshal.AsSpan(widths))
+        {
+            var windows = new List<(IntPtr, int, int)>();
+            foreach (var width in CollectionsMarshal.AsSpan(row))
+            {
+                var window = items.First(x => x.Item3 == width);
+                windows.Add(window);
             }
 
-            x = 0;
-            y += rowHeight;
-            cCollection.RemoveRange(0, itemCount);
+            rows.Add(windows);
+        }
+
+        return rows;
+    }
+
+    private static List<List<int>> GetsWindowsWidthsForRows(int rowCount, Size resolution,
+        List<(IntPtr, int, int)> cItems)
+    {
+        var widths = new List<List<int>>();
+        for (var i = 0; i < rowCount; i++)
+        {
+            var mWidth = resolution.Width;
+            var closestSubSet = SubSetsOf(cItems.Select(x => x.Item3).ToList())
+                .Select(o => new { SubSet = o, Sum = o.Sum(x => x) })
+                .Select(o => new
+                {
+                    o.SubSet,
+                    o.Sum,
+                    FromTarget = mWidth - o.Sum >= 0
+                        ? mWidth - o.Sum
+                        : (mWidth - o.Sum) * -1
+                }).MinBy(o => o.FromTarget);
+
+            if (closestSubSet != null)
+            {
+                var row = closestSubSet.SubSet.ToList();
+                widths.Add(row);
+                foreach (var width in CollectionsMarshal.AsSpan(row))
+                {
+                    var itemSpan = CollectionsMarshal.AsSpan(cItems);
+                    for (var index = 0; index < itemSpan.Length; index++)
+                    {
+                        var item = itemSpan[index];
+                        if (item.Item3 != width) continue;
+                        cItems.RemoveAt(index);
+                        break;
+                    }
+                }
+            }
+
+            if (cItems.Count == 0) break;
+        }
+
+        return widths;
+    }
+
+    public static IEnumerable<IEnumerable<T>> SubSetsOf<T>(IEnumerable<T> source)
+    {
+        var enumerable = source as T[] ?? source.ToArray();
+        if (!enumerable.Any())
+            return Enumerable.Repeat(Enumerable.Empty<T>(), 1);
+
+        // Grab the first element off of the list
+        var element = enumerable.Take(1);
+
+        // Recurse, to get all subsets of the source, ignoring the first item
+        var haveNots = SubSetsOf(enumerable.Skip(1));
+
+        // Get all those subsets and add the element we removed to them
+        var second = haveNots.ToArray();
+        var haves = second.Select(set => element.Concat(set));
+
+        // Finally combine the subsets that didn't include the first item, with those that did.
+        return haves.Concat(second);
+    }
+
+    private static void MinimizeWindows(Span<IntPtr> itemsToMinimize)
+    {
+        for (var index = 0; index < itemsToMinimize.Length; index++)
+        {
+            var item = itemsToMinimize[index];
+            MinimizeWindow(item);
         }
     }
 
-    private static void GetNonResizableWindows(IReadOnlyList<WINDOWINFO> windowsInfo, Span<IntPtr> listAsSpan, int columnWidth, int rowHeight,
-        ref List<IntPtr> invalidWindows, decimal topRow)
+    private static void ShowValidWindows(Span<List<(IntPtr, int, int)>> rows, int rowHeight)
     {
-        var x = 0;
         var y = 0;
+        foreach (var row in rows)
+        {
+            var x = 0;
+            foreach (var item in CollectionsMarshal.AsSpan(row))
+            {
+                ShowWindow(item.Item1, (int)PositioningFlags.SW_RESTORE);
+                MoveWindow(item.Item1, x, y, item.Item3, item.Item2, true);
+                x += item.Item3;
+            }
 
+
+            y += rowHeight;
+        }
+    }
+
+    private static void GetNonResizableWindows(ref List<(IntPtr, int, int)> items,
+        IReadOnlyList<WINDOWINFO> windowsInfo, Span<IntPtr> listAsSpan,
+        int columnWidth, int rowHeight,
+        ref List<IntPtr> invalidWindows, int rowCount)
+    {
+        var y = 0;
+        var x = 0;
         for (var i = 0; i < listAsSpan.Length; i++)
         {
+            
             var window = listAsSpan[i];
-            ShowWindow(window, (int)PositioningFlags.SW_SHOWNORMAL);
+            ShowWindow(window, (int)PositioningFlags.SW_RESTORE);
             MoveWindow(window, x, y, columnWidth, rowHeight, true);
-            SetForegroundWindow(window);
             GetWindowRect(window, out var rect);
 
-            if (windowsInfo[i].rcWindow == rect) invalidWindows.Add(window);
-            x += columnWidth;
+            x += rect.Size.Width;
+            if (windowsInfo[i].rcWindow.Size == rect.Size && rect.Size.Width > columnWidth)
+                invalidWindows.Add(window);
 
-            if (i + 1 != topRow) continue;
-
-            x = 0;
-            y = rowHeight;
+            items.Add((window, rect.Height, rect.Width));
         }
+
     }
 
-    private static void RemoveNonResizableWindows(ref List<IntPtr> collection, Span<IntPtr> invalidSpan)
+    private static bool MinimizeWindow(IntPtr window)
     {
-        foreach (var window in invalidSpan)
-            for (var j = 0; j < collection.Count; j++)
-            {
-                if (collection[j] != window) continue;
-                _ = GetWindowThreadProcessId(window, out var processId);
-                collection.RemoveAt(j);
-                ShowWindow(Process.GetProcessById((int)processId).MainWindowHandle, (int)PositioningFlags.SW_MINIMIZE);
-                break;
-            }
+        return ShowWindow(window, (int)PositioningFlags.SW_MINIMIZE);
     }
 
     public void SetBrightness(int newValue) // 0 ~ 100
