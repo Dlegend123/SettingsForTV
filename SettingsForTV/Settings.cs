@@ -24,7 +24,7 @@ namespace SettingsForTV
             Theme = theme;
         }
 
-
+        public Settings(){}
         public void Save()
         {
             var settings = JsonConvert.SerializeObject(this);
