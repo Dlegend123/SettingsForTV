@@ -120,6 +120,7 @@ public partial class SettingsWindow : Window
             new JProperty("AllowOverlap", AllowOverlap.IsChecked)
         };
         settings.Save();
+        settings=Settings.GetSettings();
     }
 
     private void RowCount_TextChanged(object sender, TextChangedEventArgs e)

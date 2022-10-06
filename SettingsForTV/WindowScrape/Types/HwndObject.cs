@@ -356,7 +356,7 @@ public class HwndObject
         var rowCount = Convert.ToInt32(settings["RowCount"]?.ToString());
         var colCount = Convert.ToInt32(settings["MaxWindows"]?.ToString());
         var allowOverlay = (bool)(settings["AllowOverlap"] ?? false);
-        var columnWidth = resolution.Width / collection.Count / colCount;
+        var columnWidth = resolution.Width / colCount;
         var rowHeight = resolution.Height / rowCount;
         var invalidWindows = new List<IntPtr>();
         var items = new List<(IntPtr, int, int)>();
@@ -364,7 +364,7 @@ public class HwndObject
 
         //Find non-resizable windows
         GetNonResizableWindows(ref items, windowsInfo, CollectionsMarshal.AsSpan(collection), columnWidth, rowHeight,
-            ref invalidWindows, resolution.Width / collection.Count / colCount);
+            ref invalidWindows);
 
         //remove non-resizable windows
         RemoveNonResizableWindows(invalidWindows, ref items);
@@ -372,7 +372,7 @@ public class HwndObject
         //Minimize non-resizable windows
         MinimizeWindows(CollectionsMarshal.AsSpan(invalidWindows));
 
-
+        SetWindowWidthsAndHeights(ref items, columnWidth, rowHeight);
         items = items.OrderBy(x => x.Item3).ThenBy(y => y.Item2).ToList();
 
         if (items.Count > windowCount)
@@ -398,7 +398,7 @@ public class HwndObject
     }
 
     private static List<List<(IntPtr, int, int)>> CreateRows(List<List<int>> widths,
-        IReadOnlyCollection<(IntPtr, int, int)> items)
+        ICollection<(IntPtr, int, int)> items)
     {
         var rows = new List<List<(IntPtr, int, int)>>();
         foreach (var row in CollectionsMarshal.AsSpan(widths))
@@ -408,6 +408,7 @@ public class HwndObject
             {
                 var window = items.First(x => x.Item3 == width);
                 windows.Add(window);
+                items.Remove(window);
             }
 
             rows.Add(windows);
@@ -507,25 +508,40 @@ public class HwndObject
     private static void GetNonResizableWindows(ref List<(IntPtr, int, int)> items,
         IReadOnlyList<WINDOWINFO> windowsInfo, Span<IntPtr> listAsSpan,
         int columnWidth, int rowHeight,
-        ref List<IntPtr> invalidWindows, int rowCount)
+        ref List<IntPtr> invalidWindows)
     {
-        var y = 0;
-        var x = 0;
+
         for (var i = 0; i < listAsSpan.Length; i++)
         {
-            
             var window = listAsSpan[i];
+
             ShowWindow(window, (int)PositioningFlags.SW_RESTORE);
-            MoveWindow(window, x, y, columnWidth, rowHeight, true);
+            SetWindowPos(window, HWND_TOP, 0, 0, columnWidth, rowHeight, Swp.NOZORDER);
             GetWindowRect(window, out var rect);
 
-            x += rect.Size.Width;
-            if (windowsInfo[i].rcWindow.Size == rect.Size && rect.Size.Width > columnWidth)
+            if ((windowsInfo[i].rcWindow.Size == rect.Size && rect.Width > columnWidth) || rect.Height <= 0 ||
+                rect.Width <= 0)
                 invalidWindows.Add(window);
-
-            items.Add((window, rect.Height, rect.Width));
+            else
+                items.Add((window, rect.Height, rect.Width));
         }
+    }
 
+    private static void SetWindowWidthsAndHeights(ref List<(IntPtr, int, int)> items,
+        int columnWidth, int rowHeight)
+    {
+        var listAsSpan = CollectionsMarshal.AsSpan(items);
+        for (var i = 0; i < listAsSpan.Length; i++)
+        {
+            var window = listAsSpan[i];
+            ShowWindow(window.Item1, (int)PositioningFlags.SW_RESTORE);
+            SetWindowPos(window.Item1, HWND_TOP, 0, 0, columnWidth, rowHeight, Swp.NOZORDER);
+
+            GetWindowRect(window.Item1, out var rect);
+            window.Item2 = rect.Height;
+            window.Item3 = rect.Width;
+            items[i] = window;
+        }
     }
 
     private static bool MinimizeWindow(IntPtr window)
