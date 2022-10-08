@@ -349,10 +349,10 @@ public class HwndObject
         }
     }
 
-    private void SetWindows(List<IntPtr> collection, IReadOnlyList<WINDOWINFO> windowsInfo)
+    private static void SetWindows(List<IntPtr> collection, IReadOnlyList<WINDOWINFO> windowsInfo)
     {
         var resolution = GetDisplayResolution();
-        var settings = Settings.GetSettings().Display;
+        var settings = Settings.GetSettings().Modes.Where(x=>x.Value<bool>("Current")==true).First();
         var rowCount = Convert.ToInt32(settings["RowCount"]?.ToString());
         var colCount = Convert.ToInt32(settings["MaxWindows"]?.ToString());
         var allowOverlay = (bool)(settings["AllowOverlap"] ?? false);
@@ -404,8 +404,10 @@ public class HwndObject
         foreach (var row in CollectionsMarshal.AsSpan(widths))
         {
             var windows = new List<(IntPtr, int, int)>();
-            foreach (var width in CollectionsMarshal.AsSpan(row))
+            var span = CollectionsMarshal.AsSpan(row);
+            for (var index = 0; index < span.Length; index++)
             {
+                var width = span[index];
                 var window = items.First(x => x.Item3 == width);
                 windows.Add(window);
                 items.Remove(window);
@@ -425,7 +427,11 @@ public class HwndObject
         {
             var mWidth = resolution.Width;
             var closestSubSet = SubSetsOf(cItems.Select(x => x.Item3).ToList())
-                .Select(o => new { SubSet = o, Sum = o.Sum(x => x) })
+                .Select(o =>
+                {
+                    var enumerable = o as int[] ?? o.ToArray();
+                    return new { SubSet = enumerable, Sum = enumerable.Sum(x => x) };
+                })
                 .Select(o => new
                 {
                     o.SubSet,
@@ -460,18 +466,17 @@ public class HwndObject
 
     public static IEnumerable<IEnumerable<T>> SubSetsOf<T>(IEnumerable<T> source)
     {
-        var enumerable = source as T[] ?? source.ToArray();
-        if (!enumerable.Any())
+        var sourceArray= source.ToArray();
+        if (!sourceArray.Any())
             return Enumerable.Repeat(Enumerable.Empty<T>(), 1);
 
         // Grab the first element off of the list
-        var element = enumerable.Take(1);
+        var element = sourceArray.Take(1);
 
         // Recurse, to get all subsets of the source, ignoring the first item
-        var haveNots = SubSetsOf(enumerable.Skip(1));
 
         // Get all those subsets and add the element we removed to them
-        var second = haveNots.ToArray();
+        var second = SubSetsOf(sourceArray.Skip(1)).ToArray();
         var haves = second.Select(set => element.Concat(set));
 
         // Finally combine the subsets that didn't include the first item, with those that did.

@@ -6,22 +6,21 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+#pragma warning disable CS8603
 
 namespace SettingsForTV
 {
     internal class Settings
     {
-        public JObject Display;
-        public JObject Mode;
-        public JObject Shortcuts;
-        public JObject Theme;
+        public List<JObject> Modes;
+        public List<JObject> Shortcuts;
+        public List<JObject> Themes;
 
-        public Settings(JObject display, JObject mode, JObject shortcuts, JObject theme)
+        public Settings(List<JObject> modes, List<JObject> shortcuts, List<JObject> themes)
         {
-            Display = display;
-            Mode = mode;
+            Modes = modes;
             Shortcuts = shortcuts;
-            Theme = theme;
+            Themes = themes;
         }
 
         public Settings(){}
@@ -43,10 +42,9 @@ namespace SettingsForTV
 
                 if (settings is null) return;
 
-                Display = settings.Display;
-                Mode = settings.Mode;
+                Modes = settings.Modes;
                 Shortcuts = settings.Shortcuts;
-                Theme = settings.Theme;
+                Themes = settings.Themes;
             }
             catch (Exception)
             {

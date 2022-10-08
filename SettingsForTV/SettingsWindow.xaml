@@ -9,7 +9,7 @@
         Title="Settings" AllowsTransparency="True" TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType" UseLayoutRounding="true" Height="472" Width="748"
         Background="Transparent"
-        WindowStyle="None" MouseDown="Window_MouseDown" d:DataContext="{d:DesignInstance settingsForTv:SettingsWindow }">
+        WindowStyle="None" d:DataContext="{d:DesignInstance settingsForTv:SettingsWindow }">
     <Window.Resources>
         <settingsForTv:ContentToPathConverter x:Key="Content2PathConverter" />
         <settingsForTv:ContentToMarginConverter x:Key="Content2MarginConverter" />
@@ -188,81 +188,116 @@
                                         <Border.Background>
                                             <SolidColorBrush Color="#FF795850" />
                                         </Border.Background>
-                                    </Border>
-
-                                </TabItem>
-                                <TabItem Header="Display">
-
-                                    <Border
-                                        BorderBrush="#FFE2D3B8" BorderThickness="10" CornerRadius="0,0,5,5"
-                                        UseLayoutRounding="True" HorizontalAlignment="Center"
-                                        VerticalAlignment="Top" Height="363" Width="700">
-                                        <Border.Background>
-                                            <SolidColorBrush Color="#FF795850" />
-                                        </Border.Background>
-                                        <Grid HorizontalAlignment="Left" Width="539" Margin="20,0,0,0">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="207*" />
-                                                <ColumnDefinition Width="145*" />
-                                                <ColumnDefinition Width="187*" />
-                                            </Grid.ColumnDefinitions>
+                                        <Grid>
                                             <Grid.RowDefinitions>
-                                                <RowDefinition Height="17*"/>
-                                                <RowDefinition Height="111*"/>
-                                                <RowDefinition Height="19*"/>
-                                                <RowDefinition Height="25*"/>
+                                                <RowDefinition Height="53*"/>
+                                                <RowDefinition Height="291*"/>
                                             </Grid.RowDefinitions>
-                                            <Separator Grid.Column="0" Visibility="Hidden" Grid.Row="0" Grid.ColumnSpan="2" Margin="0,2,0,2"></Separator>
-                                            <Border Grid.Row="1" Grid.Column="0" BorderBrush="#FFE2D3B8" BorderThickness="2" Margin="0,2,0,0">
-                                                <StackPanel Orientation="Vertical" Margin="0,17,4,0">
-                                                    <Label Content="# rows" Foreground="White" FontSize="15" FontFamily="Segoe UI" />
-
-                                                    <Label Content="Max # of windows per row" Foreground="White" FontSize="15" FontFamily="Segoe UI" />
-                                                    <Label Content="Let windows overlap to fit" Foreground="White" FontSize="15" FontFamily="Segoe UI" />
-                                                </StackPanel>
-                                            </Border>
-                                            <Border Grid.Column="0" Grid.Row="1" BorderBrush="#FFE2D3B8" BorderThickness="2" Grid.ColumnSpan="2" Margin="207,2,0,0">
-                                                <StackPanel UseLayoutRounding="True" Orientation="Vertical" Margin="73,17,4,0">
-
-                                                    <TextBox x:Name="RowCount" settingsForTv:TextBoxHelper.OnlyNumeric="Natural" settingsForTv:TextBoxHelper.DefaultValue="10" CaretIndex="{x:Static System:Int32.MaxValue}" FontFamily="Segoe UI" FontSize="15" KeyUp="NumInput_KeyUp" TextChanged="RowCount_TextChanged" Text="{Binding rowCount, Mode=OneWay}"/>
-                                                    <Separator Height="8" Visibility="Hidden"/>
-                                                    <TextBox x:Name="MaxWindowNum" settingsForTv:TextBoxHelper.DefaultValue="10" settingsForTv:TextBoxHelper.OnlyNumeric="Natural" CaretIndex="{x:Static System:Int32.MaxValue}" FontSize="15" FontFamily="Segoe UI" KeyUp="NumInput_KeyUp" TextChanged="MaxWindowNum_TextChanged" Text="{Binding MaxWindows, Mode=OneWay}"/>
-                                                    <Separator Height="8" Visibility="Hidden"/>
-                                                    <CheckBox x:Name="AllowOverlap" Height="14" Width="14" HorizontalAlignment="Right" IsChecked="{Binding allowOverlay}" Checked="AllowOverlap_Checked" Unchecked="AllowOverlap_Unchecked">
-                                                        <CheckBox.LayoutTransform>
-                                                            <ScaleTransform ScaleX="1.5" ScaleY="1.5" />
-                                                        </CheckBox.LayoutTransform>
-                                                    </CheckBox>
-                                                </StackPanel>
-                                            </Border>
-                                            <Border Grid.Column="0" Grid.Row="2" BorderBrush="#FFE2D3B8" BorderThickness="2" Grid.ColumnSpan="2"  Grid.RowSpan="2" Height="46" VerticalAlignment="Top">
-                                                <StackPanel Orientation="Horizontal" FlowDirection="RightToLeft">
-                                                    <Separator Width="10" Visibility="Hidden"/>
-                                                    <Button x:Name="SaveSettings" x:FieldModifier="public" Height="35" Width="35" HorizontalAlignment="Right" Click="SaveSettings_Click">
-                                                        <Button.Resources>
-                                                            <Style TargetType="Border">
-                                                                <Setter Property="CornerRadius" Value="5" />
-                                                            </Style>
-                                                        </Button.Resources>
-                                                        <Button.Style>
-                                                            <Style TargetType="Button">
-                                                                <Style.Triggers>
-                                                                    <Trigger Property="IsEnabled" Value="False">
-                                                                        <Setter Property="Opacity" Value="0.75"/>
-                                                                    </Trigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </Button.Style>
-                                                        <Image Source="/Images/icons8_save_80px.png" Height="35" Width="35"
-                                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                    </Button>
+                                            <Grid VerticalAlignment="Center" HorizontalAlignment="Center" Height="32" Width="225">
+                                                <StackPanel Orientation="Horizontal" Margin="2,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Left">
+                                                    <Label Content="Mode" Width="56"  FontSize="15" FontFamily="Segoe UI" FontWeight="Bold" Height="31" Foreground="White"/>
+                                                    <ComboBox Width="168" Name="ModeNames"  FontSize="15" FontFamily="Segoe UI" FontWeight="Normal" Height="22"/>
                                                 </StackPanel>
 
+                                            </Grid>
+                                            <Border Grid.Row="1" Grid.Column="0" BorderBrush="#FFE2D3B8"
+                                                    BorderThickness="0,2,0,0" Margin="0,0,0,24">
+                                                <StackPanel Orientation="Vertical">
+                                                    <Grid Visibility="Collapsed" VerticalAlignment="Center" HorizontalAlignment="Center" Width="388">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="181*" />
+                                                            <ColumnDefinition Width="198*" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition  Height="30"/>
+                                                            <RowDefinition Height="30" />
+                                                            <RowDefinition Height="30" />
+                                                            <RowDefinition Height="30"/>
+                                                            <RowDefinition Height="30"/>
+                                                            <RowDefinition Height="30"/>
+                                                            <RowDefinition Height="45"/>
+
+                                                        </Grid.RowDefinitions>
+                                                        <Border Grid.Row="1" BorderThickness="1" Grid.Column="0" BorderBrush="White">
+                                                            <Label HorizontalAlignment="Left" Foreground="White"
+                                                               Content="Name" FontFamily="Segoe UI" FontSize="15"
+                                                               Width="91" />
+                                                        </Border>
+                                                        <Border BorderThickness="1" BorderBrush="White" Grid.Column="0" Grid.Row="2">
+                                                            <Label FontFamily="Segoe UI" FontSize="15"
+                                                               Content="Key Binding" Foreground="#FFFAFAFA" />
+                                                        </Border>
+                                                        <Border BorderThickness="1" Grid.Column="0" Grid.Row="3" BorderBrush="White">
+                                                            <Label Foreground="White" FontFamily="Segoe UI" FontSize="15"
+                                                               Content="# rows" />
+                                                        </Border>
+                                                        <Border BorderThickness="1" BorderBrush="White" Grid.Column="0" Grid.Row="4">
+                                                            <Label Foreground="White" FontSize="15"
+                                                               Content="# windows per row" />
+                                                        </Border>
+                                                        <Border BorderThickness="1" BorderBrush="White" Grid.Column="0" Grid.Row="5">
+                                                            <Label Foreground="White" FontSize="15"
+                                                               Content="Brightness Level" />
+                                                        </Border>
+                                                        <Border Grid.Row="1" BorderThickness="1" BorderBrush="White" Grid.Column="1">
+                                                            <TextBox x:Name="CurrentModeNameField" FontSize="15" FontFamily="Segoe UI" />
+                                                        </Border>
+                                                        <Border BorderThickness="1" BorderBrush="White" Grid.Column="1" Grid.Row="2">
+                                                            <ComboBox x:Name="CurrentKey" SelectionChanged="CurrentKey_OnSelectionChanged" FontSize="15" FontFamily="Segoe UI"/>
+                                                        </Border>
+                                                        <Border BorderThickness="1" BorderBrush="White" Grid.Row="3" Grid.Column="1">
+                                                            <TextBox x:Name="RowCountField" settingsForTv:TextBoxHelper.OnlyNumeric="Natural" KeyUp="NumInput_KeyUp" FontSize="15" FontFamily="Segoe UI"/>
+                                                        </Border>
+                                                        <Border BorderThickness="1" BorderBrush="White" Grid.Row="4" Grid.Column="1">
+                                                            <TextBox x:Name="MaxWindowNum" settingsForTv:TextBoxHelper.OnlyNumeric="Natural" KeyUp="NumInput_KeyUp" FontFamily="Segoe UI" FontSize="15"/>
+                                                        </Border>
+                                                        <Border BorderThickness="1" BorderBrush="White" Grid.Row="5" Grid.Column="1">
+                                                            <TextBox x:Name="BrightnessLevel" settingsForTv:TextBoxHelper.OnlyNumeric="Natural" KeyUp="NumInput_KeyUp" FontFamily="Segoe UI" FontSize="15"/>
+                                                        </Border>
+                                                        <Border Padding="0,5,5,5" BorderThickness="1" BorderBrush="White" Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2">
+                                                            <Button x:Name="NextOfMode" x:FieldModifier="public" Height="30" Width="30" HorizontalAlignment="Right" Click="SaveSettings_Click">
+                                                                <Button.Resources>
+                                                                    <Style TargetType="Border">
+                                                                        <Setter Property="CornerRadius" Value="15" />
+                                                                    </Style>
+                                                                </Button.Resources>
+                                                                <Button.Style>
+                                                                    <Style TargetType="Button">
+                                                                        <Style.Triggers>
+                                                                            <Trigger Property="IsEnabled" Value="False">
+                                                                                <Setter Property="Opacity" Value="0.75"/>
+                                                                            </Trigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Button.Style>
+                                                                <Image Source="/Images/icons8_next_page_80px.png" Height="30" Width="30"
+                                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                            </Button>
+                                                        </Border>
+                                                    </Grid>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="97*" />
+                                                            <ColumnDefinition Width="130*" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <Border Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,380,0">
+                                                            <StackPanel Orientation="Vertical" />
+                                                        </Border>
+                                                        <Border Grid.Column="1" >
+                                                            <Canvas Height="267.2" Name="MyCanvas">
+                                                                <Rectangle Height="100" Width="100" Fill="#FFE25555" MouseLeftButtonDown="UIElement_OnMouseLeftButtonDown" MouseLeftButtonUp="UIElement_OnMouseLeftButtonUp" PreviewMouseMove="UIElement_OnPreviewMouseMove"/>
+                                                            </Canvas>
+                                                        </Border>
+
+                                                    </Grid>
+                                                </StackPanel>
                                             </Border>
+
                                         </Grid>
                                     </Border>
 
                                 </TabItem>
+
                             </TabControl>
                         </Grid>
                     </Border>
